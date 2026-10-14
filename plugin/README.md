@@ -1,0 +1,38 @@
+# Usage-Streak for Genex
+
+**This plugin does not work on standard Genex releases.** It requires the proposed customization API in [desktop PR #112](https://github.com/genex-games/genex-desktop/pull/112), discussed in [issue #111](https://github.com/genex-games/genex-desktop/issues/111). That API has not been merged into `dev`.
+
+PR #112 alone is not enough for this build. The New Chat placement and day navigation also need `newChatFooter`, `customization.openDetails`, `context.navigation.day` and `context.features.uiPanelNavigation === 1`. These are additional local host hooks, not released Genex APIs. [The compatibility notes](compat/README.md) include their reference patch for review and reproduction. The plugin never patches or upgrades the application by itself. There is currently no supported stock Genex version.
+
+Usage-Streak reads local token activity by day, game and model. It includes no Windows port, theme editor or installer. The screenshots show a locally patched Genex 0.1.7 build, not stock Genex.
+
+Open Plugins → Usage-Streak → Usage-Streak. Choose **Show on New Chat** to place a compact calendar below the composer. The widget shows only counters and up to 26 recent weeks, adapting to the available width without scrollbars. Click a day to open that day in Plugins → Usage-Streak. New Chat never expands into the dashboard. The regular settings panel contains the full year and dashboard. All interface labels, numbers and month names use English. The local host also needs customization.openDetails (uiPanelNavigation: 1) to navigate from the widget to its own primary settings panel. Disable the plugin to remove its widget.
+
+The calendar uses GitHub's week/day arrangement, with Genex's blue palette. It includes local-day token totals, current/longest streak, game/model/day filters, input/output/cache splits, a 60-day chart, stored Studio screenshots, and an activity tree grouped by recorded thread/run/turn identifiers. It shows up to 160 recent matching events and 12 games. File activity distinguishes logged edit requests from verified added/deleted/modified files between two saved game checkpoints. Choose a game and click Compare checkpoints for the latter; uncommitted changes are excluded. Model reasoning is private; this plugin only displays already published summaries and observed actions.
+
+Tokens are **reported local usage**, not a billing invoice. Codex cache reads are removed from its inclusive input before summing. Reasoning is included in output. Per-model partitions replace the main-loop total, rather than being added twice. A build observation that repeats a delegated reply in the same thread/turn is counted once, following Genex's event contract. Inherited fork prefixes are excluded. Missing fields and unreadable/unsupported history produce an incomplete-data notice. Streak means consecutive local days with positive reported usage; yesterday may continue the current streak before today's first usage.
+
+The backend reads projects.json, committed conversation records/events, referenced captures under runs/, and the Genex plugin's kept covers. Older Studio screenshots are found in a saved run's screenshots folders and attributed through its report.json. It never opens credential stores, CLI homes or the network. It does not invoke models or capture new screenshots. No generated sidebar art is substituted for a game screenshot. Existing images are loaded on demand and reduced for display. Raw prompts, tool output and private reasoning are not returned to the panel. Nothing is uploaded.
+
+Checkpoint comparison reads only the Git database of the selected indexed game, for commit ids actually recorded by Studio. It uses bundled isomorphic-git in JavaScript with a read-only filesystem; no Git installation, shell, external process, hooks or conversion filters are used. Results are capped at 200 files, trees at 20,000 entries and packs at 128 MiB. SHA-1 repositories with a normal .git directory are supported; worktrees, SHA-256 repositories, missing/pruned objects and larger histories show an unavailable message. This is a changed-file comparison, not a full textual patch viewer.
+
+Profile detection follows the host's plugin storage directory on Windows, macOS and Linux. For a different data layout, set the optional Genex profile directory. The event reader is bounded to 300 conversations, 150,000 events and 2 MiB per JSON record; limits are reported. Unchanged conversation heads are cached. Refresh runs every five seconds only while visible and can be paused. A provider may report usage only when a call ends, so live token-by-token billing is not claimed.
+
+Customization API v1 currently selects one composition provider. Another active customization profile may take priority; keep that profile reset if using this widget. This plugin sets only its own widget placement and never supplies theme, font or background overrides. The locally prepared host adds the newChatFooter anchor: a card matching the composer width and 160 CSS pixels tall, with larger token totals and calendar cells, with 8px padding and the same border and corner radius as the prompt field. It follows the composer instead of the window grid and fits recent weeks without scrollbars.
+
+## Install
+
+On a compatible development host, use the prebuilt `plugin/` directory (plugin.json, backend.mjs, both HTML panels, icon and license) with Genex's local plugin install. The official GitHub install route accepts the link to `https://github.com/TheAstrayDev/genex-usage-streak/tree/main/plugin`. A ZIP must be extracted first. The application binary is not modified by the plugin. A host without the customization capability cannot install this build. Even with PR #112, the additional hooks described above are required. Do not install this on stock Genex or treat the catalog submission as approval.
+
+## Development
+
+TypeScript and bundled JavaScript; no user-installed runtime dependencies. `npm ci`, `npm test`, `npm run check`, `npm run build`. The SDK panel bridge is vendored in vendor/panel.js from the API source checkout at commit 1e3fa43783b6e9c2ea63649758b92f3bf4d8b88a. isomorphic-git and the code it needs are bundled into backend.mjs; THIRD_PARTY_NOTICES.txt preserves their license notices. Unit tests use disposable synthetic histories and do not start agents or touch real game files. Electron integration tests in tests/ui.mjs use a Genex checkout selected with `GENEX_HOST_DIR` and their own disposable profile. See compat/README.md for the exact host base and patch. Run `node tests/ui.mjs` and `node tests/release.mjs` after the host build. Unit tests and the plugin build do not require a Genex checkout.
+
+AI-assisted implementation with Codex. No claim of official Genex or GitHub endorsement.
+
+
+## Publishing
+
+This submission follows the [official plugin publishing guide](https://github.com/genex-games/genex-desktop/blob/dev/docs/PLUGIN_GUIDE.md#9-publish) and [catalog contribution rules](https://github.com/genex-games/genex-plugins/blob/main/CONTRIBUTING.md). Source and prebuilt package live here. The immutable JSON artifact is attached to the GitHub release. The catalog PR changes only its release record and index and must remain unmerged until the host API dependencies and runtime support have been reviewed. No catalog policy or application files are changed by the submission.
+
+MIT licensed. Maintainer: [TheAstrayDev](https://github.com/TheAstrayDev). Report plugin problems in this repository's issues.

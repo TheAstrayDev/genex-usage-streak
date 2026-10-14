@@ -1,0 +1,51 @@
+{
+  "apiVersion": 3,
+  "id": "usage-streak",
+  "version": "1.0.4",
+  "publisher": "TheAstrayDev",
+  "name": "Usage-Streak",
+  "description": "Local token activity by day, game and model, with saved Studio captures and a recorded activity tree. Requires unmerged customization API #112 plus footer/navigation hooks; incompatible with stock Genex.",
+  "backend": "backend.mjs",
+  "icon": "icon.svg",
+  "capabilities": [
+    "ui.customization"
+  ],
+  "tools": [],
+  "skills": [],
+  "settings": [
+    {
+      "key": "profile",
+      "label": "Genex profile directory (optional)",
+      "type": "string",
+      "default": ""
+    }
+  ],
+  "panels": [
+    {
+      "id": "dashboard",
+      "title": "Usage-Streak",
+      "placement": "settings",
+      "file": "dashboard.html"
+    },
+    {
+      "id": "streak",
+      "title": "New Chat widget",
+      "placement": "settings",
+      "file": "streak.html"
+    }
+  ],
+  "actions": [
+    {
+      "name": "analytics",
+      "label": "Read local token activity"
+    },
+    {
+      "name": "screenshot",
+      "label": "Read saved Studio screenshot"
+    },
+    {
+      "name": "changes",
+      "label": "Compare saved game checkpoints"
+    }
+  ]
+}

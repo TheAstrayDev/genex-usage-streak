@@ -1,0 +1,1167 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Usage-Streak</title><style>:root {
+	color-scheme: dark;
+	--background: #151516;
+	--foreground: #dee0e2;
+	--accent: #4759c2;
+	--muted: color-mix(in srgb, var(--foreground) 58%, var(--background));
+	--line: color-mix(in srgb, var(--foreground) 12%, var(--background));
+	--hover: color-mix(in srgb, var(--foreground) 7%, var(--background));
+	--l0: color-mix(in srgb, var(--foreground) 7%, var(--background));
+	--l1: color-mix(in srgb, var(--accent) 25%, var(--background));
+	--l2: color-mix(in srgb, var(--accent) 50%, var(--background));
+	--l3: color-mix(in srgb, var(--accent) 80%, var(--background));
+	--l4: color-mix(in srgb, var(--accent) 75%, #b3b6f5);
+}
+* {
+	box-sizing: border-box;
+}
+body {
+	margin: 0;
+	background: var(--background);
+	color: var(--foreground);
+	font:
+		13px "Zalando Sans SemiExpanded",
+		"Geist Fallback",
+		system-ui,
+		sans-serif;
+	line-height: 1.5;
+}
+button,
+input,
+select {
+	font: inherit;
+	color: inherit;
+}
+button {
+	cursor: pointer;
+}
+button:focus-visible,
+select:focus-visible,
+summary:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 3px;
+}
+button {
+	border: 0;
+	background: transparent;
+	border-radius: 7px;
+}
+button:not(.day):hover {
+	background: var(--hover);
+}
+h1,
+h2,
+p {
+	margin: 0;
+}
+h1 {
+	font-size: 21px;
+	letter-spacing: -0.5px;
+	font-weight: 600;
+}
+h2 {
+	font-size: 14px;
+	font-weight: 600;
+}
+small,
+.hint,
+.muted {
+	color: var(--muted);
+}
+small {
+	font-size: 11px;
+}
+strong {
+	font-weight: 600;
+}
+select {
+	background: var(--background);
+	border: 1px solid var(--line);
+	border-radius: 7px;
+	padding: 7px 10px;
+	max-width: 100%;
+}
+select option {
+	background: var(--background);
+}
+.dashboard {
+	max-width: 1180px;
+	margin: auto;
+	padding: 28px 32px;
+}
+.compact {
+	padding: 6px 10px;
+	overflow: hidden;
+}
+.top {
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-start;
+	gap: 12px;
+	margin-bottom: 20px;
+}
+.top p {
+	color: var(--muted);
+	margin-top: 4px;
+}
+.head-actions {
+	display: flex;
+	gap: 5px;
+	flex-wrap: wrap;
+	justify-content: flex-end;
+}
+.quiet {
+	padding: 6px 10px;
+	border: 1px solid var(--line);
+	font-size: 12px;
+}
+.title-button {
+	font-size: 13px;
+	letter-spacing: 0;
+	font-weight: 600;
+	text-align: left;
+	padding: 0;
+}
+.title-button span {
+	color: var(--muted);
+	margin-left: 6px;
+}
+.summary {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	margin-bottom: 14px;
+}
+.summary > strong {
+	font-variant-numeric: tabular-nums;
+	font-size: 20px;
+	letter-spacing: -0.4px;
+}
+.summary > strong span {
+	font-size: 12px;
+	font-weight: 400;
+	color: var(--muted);
+	letter-spacing: 0;
+}
+.streak {
+	font-size: 12px;
+	white-space: nowrap;
+}
+.calendar-scroll {
+	overflow-x: auto;
+	padding: 2px 2px 4px;
+}
+.calendar {
+	display: grid;
+	grid-template-columns: 28px 1fr;
+	grid-template-rows: 20px 83px;
+	min-width: 510px;
+	gap: 4px;
+}
+.month-row {
+	grid-column: 2;
+	display: grid;
+	grid-template-columns: repeat(53, minmax(0, 1fr));
+	font-size: 10px;
+	color: var(--muted);
+}
+.month-row span {
+	white-space: nowrap;
+}
+.weekdays {
+	display: flex;
+	flex-direction: column;
+	justify-content: space-evenly;
+	font-size: 9px;
+	color: var(--muted);
+	padding: 6px 0;
+}
+.heatmap {
+	display: grid;
+	grid-auto-flow: column;
+	grid-template-rows: repeat(7, minmax(0, 1fr));
+	grid-template-columns: repeat(53, minmax(0, 1fr));
+	gap: 3px;
+	align-content: start;
+}
+.day {
+	width: 100%;
+	height: 100%;
+	min-width: 0;
+	border-radius: 2px;
+	padding: 0;
+	border: 1px solid color-mix(in srgb, var(--foreground) 4%, transparent);
+}
+.day[aria-pressed="true"] {
+	outline: 1px solid var(--foreground);
+	outline-offset: 1px;
+}
+.l0 {
+	background: var(--l0);
+}
+.l1 {
+	background: var(--l1);
+}
+.l2 {
+	background: var(--l2);
+}
+.l3 {
+	background: var(--l3);
+}
+.l4 {
+	background: var(--l4);
+}
+.day:hover {
+	filter: brightness(1.4);
+}
+.calendar-foot {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	font-size: 10px;
+	color: var(--muted);
+	margin: 7px 0 14px;
+	min-height: 18px;
+}
+.calendar-foot button {
+	font-size: 10px;
+	color: var(--foreground);
+	padding: 0 6px;
+}
+.legend {
+	display: flex;
+	align-items: center;
+	gap: 3px;
+	white-space: nowrap;
+}
+.legend i {
+	width: 9px;
+	height: 9px;
+	border-radius: 2px;
+}
+.filters {
+	display: flex;
+	gap: 14px;
+	align-items: flex-end;
+	margin-bottom: 20px;
+}
+.filters label {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	font-size: 11px;
+	color: var(--muted);
+	max-width: 38%;
+}
+.filters label select {
+	color: var(--foreground);
+	min-width: 150px;
+}
+.filter-end {
+	margin-left: auto;
+	font-size: 11px;
+}
+.metrics {
+	display: grid;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	border-block: 1px solid var(--line);
+	padding: 18px 0;
+	margin: 20px 0;
+	gap: 16px;
+}
+.metrics > div {
+	display: flex;
+	flex-direction: column;
+	gap: 5px;
+}
+.metrics span {
+	color: var(--muted);
+	font-size: 11px;
+}
+.metrics strong {
+	font-size: 18px;
+	font-variant-numeric: tabular-nums;
+}
+.section-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: 16px;
+	gap: 12px;
+}
+.section-head > span {
+	color: var(--muted);
+	font-size: 11px;
+}
+.trend {
+	padding: 4px 0 22px;
+}
+.bars {
+	display: flex;
+	gap: 3px;
+	height: 100px;
+	border-bottom: 1px solid var(--line);
+	align-items: flex-end;
+}
+.bars button {
+	height: 100%;
+	flex: 1;
+	min-width: 0;
+	border-radius: 0;
+	display: flex;
+	align-items: flex-end;
+	padding: 0;
+}
+.bars i {
+	display: block;
+	width: 100%;
+	height: var(--height);
+	min-height: 1px;
+	background: var(--accent);
+	border-radius: 2px 2px 0 0;
+}
+.axis {
+	display: flex;
+	justify-content: space-between;
+	font-size: 10px;
+	color: var(--muted);
+	margin-top: 6px;
+}
+.games {
+	margin-top: 10px;
+}
+.game {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+	width: 100%;
+	text-align: left;
+	border-radius: 0;
+	padding: 12px 0;
+	border-top: 1px solid var(--line);
+}
+.shot {
+	width: 112px;
+	aspect-ratio: 16 / 9;
+	flex-shrink: 0;
+	background: var(--hover);
+	border: 1px solid var(--line);
+	border-radius: 7px;
+	overflow: hidden;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+.shot > span {
+	font-size: 9px;
+	color: var(--muted);
+}
+.shot img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+.game-copy {
+	flex: 1;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+.game-copy strong {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.game-tokens {
+	text-align: right;
+	font-variant-numeric: tabular-nums;
+	font-size: 16px;
+}
+.game-tokens small {
+	display: block;
+	font-size: 10px;
+}
+.tabs {
+	display: flex;
+	gap: 22px;
+	border-bottom: 1px solid var(--line);
+	margin-top: 24px;
+}
+.tabs button {
+	padding: 12px 0;
+	border-radius: 0;
+	color: var(--muted);
+	border-bottom: 2px solid transparent;
+}
+.tabs button[aria-current="page"] {
+	color: var(--foreground);
+	border-bottom-color: var(--accent);
+}
+.hint {
+	font-size: 11px;
+	margin: 12px 0;
+}
+.event-tree details {
+	border-bottom: 1px solid var(--line);
+}
+.event-tree summary {
+	cursor: pointer;
+	padding: 14px 0;
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	list-style: none;
+	font-size: 12px;
+}
+.event-tree summary span:not(.node) {
+	color: var(--muted);
+}
+.event-tree summary small {
+	margin-left: auto;
+}
+.node {
+	width: 7px;
+	height: 7px;
+	border: 1px solid var(--accent);
+	border-radius: 50%;
+	flex-shrink: 0;
+}
+.event-tree ol {
+	list-style: none;
+	margin: 0 0 10px 3px;
+	padding: 0 0 0 18px;
+	border-left: 1px solid var(--line);
+}
+.event-tree li {
+	display: grid;
+	grid-template-columns: 64px 1fr;
+	gap: 14px;
+	padding: 10px 0;
+	position: relative;
+}
+.event-tree li:before {
+	content: "";
+	position: absolute;
+	left: -22px;
+	top: 18px;
+	width: 6px;
+	height: 6px;
+	background: var(--background);
+	border: 1px solid var(--muted);
+	border-radius: 50%;
+}
+.event-tree time {
+	color: var(--muted);
+	font-size: 10px;
+	font-variant-numeric: tabular-nums;
+}
+.event-tree p {
+	font-size: 12px;
+	color: var(--muted);
+	margin-top: 5px;
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+}
+.status {
+	font-size: 10px;
+	color: var(--muted);
+	margin-left: 6px;
+}
+.status[data-status="failed"] {
+	color: #f08287;
+}
+.event-label {
+	font-size: 12px;
+}
+.file,
+.files {
+	font-family: ui-monospace, monospace;
+	font-size: 11px;
+	overflow-wrap: anywhere;
+}
+.files {
+	list-style: none;
+	margin: 12px 0;
+	padding: 0;
+}
+.files li {
+	padding: 9px 0;
+	border-bottom: 1px solid var(--line);
+}
+.model-table {
+	margin-top: 12px;
+	overflow-x: auto;
+}
+.model-row {
+	display: grid;
+	grid-template-columns: minmax(150px, 2fr) repeat(4, minmax(65px, 1fr));
+	gap: 16px;
+	min-width: 510px;
+	width: 100%;
+	text-align: right;
+	padding: 13px 0;
+	border-bottom: 1px solid var(--line);
+	border-radius: 0;
+	font-size: 12px;
+}
+.model-row > :first-child {
+	text-align: left;
+	overflow-wrap: anywhere;
+}
+.table-head {
+	font-size: 10px;
+	color: var(--muted);
+}
+.footer {
+	display: flex;
+	justify-content: space-between;
+	gap: 12px;
+	font-size: 10px;
+	color: var(--muted);
+	margin-top: 28px;
+	padding-top: 14px;
+	border-top: 1px solid var(--line);
+}
+.empty,
+.loading {
+	padding: 20px 0;
+	color: var(--muted);
+}
+.loading {
+	padding: 20px;
+}
+.loading p {
+	margin: 12px 0;
+}
+.warning {
+	font-size: 11px;
+	color: #efbe72;
+	margin: 8px 0;
+	overflow-wrap: anywhere;
+}
+.compact .top {
+	margin: 0 0 4px;
+}
+.compact .summary {
+	margin-bottom: 6px;
+}
+.compact .summary > strong {
+	font-size: 15px;
+}
+.compact .summary > strong span {
+	font-size: 10px;
+}
+.compact .streak {
+	font-size: 10px;
+}
+.compact .calendar {
+	grid-template-rows: 16px 61px;
+	min-width: 470px;
+}
+.compact .heatmap {
+	gap: 2px;
+}
+.compact .calendar-foot {
+	margin: 4px 0 6px;
+	font-size: 9px;
+}
+.compact .game {
+	padding: 7px 0;
+	gap: 10px;
+}
+.compact .shot {
+	width: 58px;
+	border-radius: 5px;
+}
+.compact .game-copy strong {
+	font-size: 11px;
+}
+.compact .game-copy small {
+	font-size: 9px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.compact .game-tokens {
+	font-size: 12px;
+}
+.compact .game-tokens small {
+	font-size: 9px;
+}
+.compact .warning {
+	font-size: 9px;
+}
+.compact .streak .muted {
+	display: none;
+}
+@media (max-width: 640px) {
+	.dashboard {
+		padding: 18px 16px;
+	}
+	.top {
+		flex-wrap: wrap;
+	}
+	.metrics {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+	.filters {
+		gap: 8px;
+		flex-wrap: wrap;
+	}
+	.filters label {
+		max-width: 48%;
+	}
+	.filters label select {
+		min-width: 110px;
+		width: 100%;
+	}
+	.filter-end {
+		margin-left: 0;
+	}
+	.summary {
+		align-items: flex-start;
+		flex-direction: column;
+		gap: 3px;
+	}
+	.game-copy small {
+		display: none;
+	}
+	.shot {
+		width: 80px;
+	}
+	.footer {
+		flex-direction: column;
+	}
+	.compact {
+		padding: 4px 6px;
+	}
+	.compact .summary {
+		flex-direction: row;
+	}
+	.compact .summary > strong span {
+		display: none;
+	}
+	.streak {
+		font-size: 10px;
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	* {
+		scroll-behavior: auto !important;
+		animation: none !important;
+		transition: none !important;
+	}
+}
+
+.calendar {
+	--cell: 12px;
+	grid-template-columns: 28px max-content;
+	grid-template-rows: 20px calc(7 * var(--cell) + 18px);
+	width: max-content;
+	min-width: 0;
+}
+.heatmap {
+	grid-template-rows: repeat(7, var(--cell));
+	grid-template-columns: repeat(53, var(--cell));
+}
+.month-row {
+	grid-template-columns: repeat(53, var(--cell));
+	gap: 3px;
+}
+.compact .calendar {
+	--cell: 8px;
+	min-width: 0;
+	grid-template-rows: 16px 68px;
+}
+.compact .month-row {
+	gap: 2px;
+}
+.checkpoint-changes {
+	border: 1px solid var(--line);
+	border-radius: 8px;
+	padding: 16px;
+	margin: 16px 0;
+}
+.verified li {
+	display: grid;
+	grid-template-columns: 1fr auto auto;
+	gap: 14px;
+}
+.added {
+	color: #7cd194;
+}
+.removed {
+	color: #f08287;
+}
+/* The host owns the card's 8px padding and rounded surface. */
+.widget-page { overflow: hidden; background: transparent; }
+.compact {
+  display: grid;
+  grid-template-rows: 24px minmax(0, 1fr);
+  gap: 8px;
+  height: 100vh;
+  padding: 0;
+}
+.compact .summary { margin: 0; gap: 6px; flex-wrap: nowrap; flex-direction: row; align-items: center; line-height: 24px; }
+.compact .summary > strong { font-size: 20px; letter-spacing: -.2px; white-space: nowrap; }
+.compact .summary > strong span { display: inline; font-size: 12px; }
+.compact .streak { font-size: 12px; }
+.compact .streak .muted { display: inline; }
+.compact .calendar-scroll { overflow: hidden; padding: 0; min-height: 0; }
+.compact .calendar {
+  width: 100%; max-width: 100%; height: 100%; min-width: 0;
+  grid-template-columns: 26px minmax(0, 1fr);
+  grid-template-rows: 14px minmax(0, 1fr);
+  column-gap: 6px; row-gap: 4px;
+}
+.compact .heatmap { grid-template-columns: repeat(var(--weeks), minmax(0, 1fr)); grid-template-rows: repeat(7, minmax(0, 1fr)); gap: 2px; }
+.compact .month-row { grid-template-columns: repeat(var(--weeks), minmax(0, 1fr)); gap: 2px; font-size: 11px; line-height: 14px; }
+.compact .weekdays { font-size: 9px; padding: 0; }
+.compact .day { border-radius: 2px; }
+.compact .calendar-foot { display: none; }
+.month-row span { grid-row: 1; }
+@media (max-width: 360px) {
+  .compact .summary > strong { font-size: 18px; }
+  .compact .summary > strong span, .compact .streak { font-size: 11px; }
+}
+</style></head><body><main id="root"></main><script>// Include this in a prebuilt panel. No credential values or arbitrary IPC are exposed.
+// The longest a panel may wait for one answer. A file picker gets all of it: the person takes their time.
+const LONGEST_WAIT_MS = 1800000;
+const waiting = new Map();
+const contextListeners = new Set();
+let seq = 0;
+window.addEventListener("message", (event) => {
+  if (event.source !== parent) return;
+  if (event.data?.type === "studio-plugin-context-changed") {
+    for (const listener of contextListeners) {
+      try {
+        listener();
+      } catch {}
+    }
+    return;
+  }
+  if (event.data?.type !== "studio-plugin-result") return;
+  const p = waiting.get(event.data.id);
+  if (!p) return;
+  waiting.delete(event.data.id);
+  clearTimeout(p.timer);
+  if (!event.data.error) return p.resolve(event.data.result);
+  const error = new Error(event.data.error);
+  // Only a code the SDK knows crosses: "cancelled" when the person declined Studio's confirmation.
+  if (event.data.code === "cancelled") error.code = "cancelled";
+  p.reject(error);
+});
+function call(method, name, args, options) {
+  // A long setup action may extend its local wait; host validation, confirmations and
+  // execution deadlines still apply. Timing out never means a remote job was cancelled.
+  const timeoutMs = options?.timeoutMs ?? 60000;
+  if (!Number.isInteger(timeoutMs) || timeoutMs < 1000 || timeoutMs > LONGEST_WAIT_MS)
+    return Promise.reject(new Error("Invalid panel wait duration"));
+  const id = String(++seq);
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      waiting.delete(id);
+      reject(new Error("Studio request timed out. Inspect its status before retrying."));
+    }, timeoutMs);
+    waiting.set(id, { resolve, reject, timer });
+    parent.postMessage({ type: "studio-plugin-request", id, method, name, args }, "*");
+  });
+}
+window.studioPlugin = {
+  onContextChanged(callback) {
+    contextListeners.add(callback);
+    return () => contextListeners.delete(callback);
+  },
+  call,
+  // Studio's own file picker: the chosen file's path, or null when the person cancels.
+  chooseFile(request) {
+    return call("chooseFile", undefined, request, { timeoutMs: LONGEST_WAIT_MS });
+  },
+};
+window.addEventListener("pagehide", () => {
+  for (const p of waiting.values()) {
+    clearTimeout(p.timer);
+    p.reject(new Error("Panel closed"));
+  }
+  waiting.clear();
+});
+</script><script>"use strict";
+(() => {
+  // src/model.ts
+  var object = (v) => v && typeof v === "object" && !Array.isArray(v) ? v : {};
+  var total = (u) => u.input + u.output + u.read + u.write;
+  function profile() {
+    return {
+      version: 1,
+      widgets: [
+        {
+          id: "usage-streak",
+          target: "newChatFooter",
+          kind: "panel",
+          panel: "streak",
+          column: 1,
+          row: 1,
+          columnSpan: 12,
+          rowSpan: 24
+        }
+      ]
+    };
+  }
+
+  // src/panel.ts
+  var api = window.studioPlugin;
+  var root = document.querySelector("#root");
+  var embedded = true;
+  var expanded = !embedded;
+  var data = null;
+  var error = "";
+  var busy = false;
+  var queued = false;
+  var timer;
+  var lastSignature = "";
+  var request = 0;
+  var selectedProject = "";
+  var selectedModel = "";
+  var selectedDay = "";
+  var tab = "activity";
+  var live = true;
+  var changes = null;
+  var changesKey = "";
+  var changesBusy = false;
+  var zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  var thumbs = /* @__PURE__ */ new Map();
+  var loaded = /* @__PURE__ */ new Map();
+  var imageBusy = false;
+  var e = (value) => String(value ?? "").replace(
+    /[&<>"']/g,
+    (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]
+  );
+  var number = (n) => new Intl.NumberFormat("en-US", {
+    notation: n >= 1e6 ? "compact" : "standard",
+    maximumFractionDigits: 1
+  }).format(n);
+  var exact = (n) => new Intl.NumberFormat("en-US").format(n);
+  var countLine = (c) => `${exact(c.input)} input · ${exact(c.output)} output · ${exact(c.read + c.write)} cache`;
+  var button = (id, label, cls = "") => `<button type="button" data-action="${id}" class="${cls}">${label}</button>`;
+  function calendarHTML(compact = false) {
+    const weeks = compact ? Math.max(4, Math.min(26, Math.floor((innerWidth - 24) / 10))) : 53;
+    const start = compact ? Math.max(0, Math.ceil(data.days.length / 7) - weeks) * 7 : 0;
+    const days = data.days.slice(start), max = Math.max(1, ...days.map((d) => d.tokens));
+    if (compact) root.style.setProperty("--weeks", String(weeks));
+    let months = "", last = "";
+    for (let i = 0; i < days.length; i += 7) {
+      const date = /* @__PURE__ */ new Date(days[i].date + "T12:00:00Z"), month = date.toLocaleDateString("en-US", {
+        month: "short",
+        timeZone: "UTC"
+      });
+      if (month !== last) {
+        months += `<span style="grid-column:${Math.floor(i / 7) + 1}/span ${Math.min(3, weeks - Math.floor(i / 7))}">${e(month)}</span>`;
+        last = month;
+      }
+    }
+    return `<div class="calendar-scroll"><div class="calendar"><div class="month-row">${months}</div><div class="weekdays" aria-hidden="true"><span>Mon</span><span>Wed</span><span>Fri</span></div><div class="heatmap" role="group" aria-label="Daily token usage">${days.map((d, i) => {
+      const level = d.tokens ? Math.min(4, Math.max(1, Math.ceil(d.tokens / max * 4))) : 0;
+      return `<button class="day l${level}" type="button" data-date="${d.date}" data-index="${i}" tabindex="${selectedDay === d.date || !selectedDay && i === days.length - 1 ? 0 : -1}" aria-pressed="${selectedDay === d.date}" aria-label="${d.date}: ${exact(d.tokens)} reported tokens, ${d.projects} games" title="${d.date} · ${exact(d.tokens)} tokens · ${d.projects} games"></button>`;
+    }).join(
+      ""
+    )}</div></div></div><div class="calendar-foot"><span><span id="day-info">${selectedDay ? e(selectedDay) : e(data.zone)}</span>${selectedDay ? " " + button("clear-day", "Clear day") : ""}</span><span class="legend">Less ${[0, 1, 2, 3, 4].map((n) => `<i class="l${n}"></i>`).join("")} More</span></div>`;
+  }
+  function projectHTML(limit = 12) {
+    return data.projects.slice(0, limit).map((p) => {
+      const shot = thumbs.get(p.name), meta = data.screenshots[p.name];
+      return `<button type="button" class="game" data-project="${e(p.name)}"><div class="shot">${shot ? `<img src="${e(shot)}" alt="Studio screenshot of ${e(p.name)}">` : `<span>${meta ? "Loading capture…" : "No saved capture"}</span>`}</div><div class="game-copy"><strong>${e(p.name.replace(/-/g, " "))}</strong><small>${meta ? e(meta.source) : "A screenshot will appear after Studio saves one"}</small></div><span class="game-tokens" title="${e(countLine(p.counts))}">${number(p.total)}<small>tokens</small></span></button>`;
+    }).join("");
+  }
+  function graphHTML() {
+    const days = data.days.slice(-60), max = Math.max(1, ...days.map((d) => d.tokens));
+    return `<section class="trend"><div class="section-head"><h2>Tokens over time</h2><span>Last 60 days</span></div><div class="bars" role="group" aria-label="Daily tokens over the last 60 days">${days.map((d) => `<button type="button" data-date="${d.date}" style="--height:${d.tokens ? Math.max(2, d.tokens / max * 100) : 0}%" aria-label="${d.date}, ${exact(d.tokens)} tokens" title="${d.date} · ${exact(d.tokens)} tokens"><i></i></button>`).join("")}</div><div class="axis"><span>${days[0].date}</span><span>${data.today}</span></div></section>`;
+  }
+  function treeHTML() {
+    const groups = /* @__PURE__ */ new Map();
+    for (const entry of data.activity) {
+      const key = entry.thread + "|" + (entry.run || entry.turn || "session");
+      groups.set(key, [...groups.get(key) || [], entry]);
+    }
+    return `<div class="event-tree">${[...groups].slice(0, 30).map(
+      ([key, events]) => `<details ${groups.size <= 3 ? "open" : ""}><summary><span class="node"></span><strong>${e(events[0].project.replace(/-/g, " "))}</strong><span>${e(events[0].run ? "Run " + events[0].run.slice(-10) : events[0].turn ? "Turn " + events[0].turn.slice(-8) : "Session")}</span><small>${events.length} events</small></summary><ol>${events.map((a) => `<li><time datetime="${e(a.at)}">${new Date(a.at).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</time><div><div class="event-label">${e(a.label)} ${a.status ? `<span class="status" data-status="${e(a.status)}">${e(a.status)}</span>` : ""}</div><small>${e(a.model === "Unreported model" ? a.engine || "Model unreported" : a.model)}${a.worker ? " · Worker " + e(a.worker) : ""}</small>${a.summary ? `<p>${e(a.summary)}</p>` : ""}${a.files.length ? `<p class="file">Requested edit: ${a.files.map(e).join(", ")}</p>` : ""}${a.counts ? `<small>${e(countLine(a.counts))}</small>` : ""}</div></li>`).join("")}</ol></details>`
+    ).join("") || '<p class="empty">No recorded activity matches these filters.</p>'}</div>`;
+  }
+  function detailsHTML() {
+    const files = [
+      ...new Set(data.activity.flatMap((a) => a.files))
+    ];
+    return `<nav class="tabs" aria-label="Analysis sections">${["activity", "models", "changes"].map((t) => `<button data-tab="${t}" aria-current="${tab === t ? "page" : "false"}">${{ activity: "Activity tree", models: "Models", changes: "File activity" }[t]}</button>`).join("")}</nav>${tab === "activity" ? `<p class="hint">Recorded calls, tool requests and published summaries. Updates every 5 seconds while visible. Private model reasoning is not exposed.</p>${treeHTML()}` : tab === "models" ? `<div class="model-table"><div class="model-row table-head"><span>Model</span><span>Input</span><span>Output</span><span>Cache</span><span>Total</span></div>${data.models.map((m) => `<button class="model-row" data-model="${e(m.name)}"><strong>${e(m.name)}</strong><span>${number(m.counts.input)}</span><span>${number(m.counts.output)}</span><span>${number(m.counts.read + m.counts.write)}</span><span>${number(m.total)}</span></button>`).join("")}</div><p class="hint">Cache reads and writes are included in total. Reasoning tokens are already inside output. Missing provider counts are marked as incomplete.</p>` : `<p class="hint">Paths below came from logged edit requests in the latest 160 matching events. An edit request alone does not prove that a change landed. Genex does not provide a complete diff through this API.</p><ul class="files">${files.map((f) => `<li>${e(f)}</li>`).join("") || "<li>No file paths were recorded in the selected events.</li>"}</ul>`}`;
+  }
+  function filtersHTML() {
+    return `<div class="filters"><label>Game<select id="project"><option value="">All games</option>${data.projectOptions.map((p) => `<option value="${e(p)}" ${p === selectedProject ? "selected" : ""}>${e(p.replace(/-/g, " "))}</option>`).join("")}</select></label><label>Model<select id="model"><option value="">All models</option>${data.modelOptions.map((m) => `<option value="${e(m)}" ${m === selectedModel ? "selected" : ""}>${e(m)}</option>`).join("")}</select></label><span class="filter-end">${button("reset-filters", "Reset filters")}</span></div>`;
+  }
+  function changesHTML() {
+    const key = selectedProject + "\0" + selectedDay, c = changesKey === key ? changes : null;
+    return `<section class="checkpoint-changes"><div class="section-head"><h2>Saved checkpoint changes</h2>${selectedProject ? button("compare", changesBusy ? "Comparing…" : "Compare checkpoints", "quiet") : ""}</div>${!selectedProject ? '<p class="hint">Choose a game above to compare its saved checkpoints.</p>' : !c ? '<p class="hint">Compare the two latest saved game checkpoints, up to the selected day. Current uncommitted edits are not included.</p>' : !c.available ? `<p class="hint">${e(c.message)}</p>` : `<p class="hint">${e(c.from.ref.slice(0, 10))} → ${e(c.to.ref.slice(0, 10))} · ${e(new Date(c.to.at).toLocaleString("en-US"))}</p><ul class="files verified">${c.files.map((f) => `<li><span>${e(f.path)}</span><span class="change-status">${e(f.status)}</span></li>`).join("") || "<li>No file changes between these checkpoints.</li>"}</ul>${c.truncated ? '<p class="hint">Showing the first 200 changed files.</p>' : ""}`}</section>`;
+  }
+  async function compare() {
+    if (changesBusy || !selectedProject) return;
+    changesBusy = true;
+    const project = selectedProject, day = selectedDay;
+    render();
+    try {
+      const result = await api.call("action", "changes", { project, day, zone });
+      changes = result;
+      changesKey = project + "\0" + day;
+    } catch (err) {
+      changes = { available: false, message: String(err) };
+      changesKey = project + "\0" + day;
+    } finally {
+      changesBusy = false;
+      render();
+    }
+  }
+  function render() {
+    const focus = document.activeElement instanceof HTMLElement ? document.activeElement.dataset.date : null;
+    const opened = [
+      ...root.querySelectorAll("details[open]")
+    ].map((d) => d.querySelector("summary")?.textContent);
+    root.className = expanded ? "dashboard" : "compact";
+    if (!data) {
+      root.innerHTML = `<div class="loading"><h1>Usage-Streak</h1><p role="status">${e(error || "Reading local Studio activity…")}</p>${error ? button("refresh", "Try again") : ""}</div>`;
+      return;
+    }
+    const sum = total(data.counts);
+    if (embedded) {
+      root.innerHTML = `<div class="summary"><strong title="${exact(sum)} reported tokens">${number(sum)} <span>reported tokens</span></strong><span class="streak">${data.streak.current} day streak <span class="muted">· Best ${data.streak.longest}</span></span></div>${calendarHTML(true)}`;
+      if (error) root.setAttribute("aria-label", error);
+      else root.removeAttribute("aria-label");
+      return;
+    }
+    root.innerHTML = `<header class="top"><div><h1>${expanded ? "Usage-Streak" : button("expand", 'Usage-Streak <span aria-hidden="true">↗</span>', "title-button")}</h1>${expanded ? "<p>Your games, measured in tokens.</p>" : ""}</div><div class="head-actions">${expanded ? button("live", live ? "● Live" : "Paused", "quiet") + button("refresh", "Refresh", "quiet") + (embedded ? button("collapse", "Close", "quiet") : button("mount", "Show on New Chat", "quiet")) : ""}</div></header>${expanded ? filtersHTML() : ""}<div class="summary"><strong title="${exact(sum)}">${number(sum)} <span>reported tokens${selectedDay ? " · " + e(selectedDay) : ""}</span></strong><span class="streak">${data.streak.current} day streak <span class="muted">· Best ${data.streak.longest}</span></span></div>${calendarHTML()}${expanded ? `<div class="metrics"><div><span>Input</span><strong>${number(data.counts.input)}</strong></div><div><span>Output</span><strong>${number(data.counts.output)}</strong></div><div><span>Cache read / write</span><strong>${number(data.counts.read)} / ${number(data.counts.write)}</strong></div><div><span>Model calls</span><strong>${number(data.callCount)}</strong></div></div>${graphHTML()}<section class="games"><div class="section-head"><h2>Games</h2><span>Reported usage${selectedDay ? " on " + e(selectedDay) : ""}</span></div>${projectHTML() || '<p class="empty">No reported tokens yet. Build a game in Studio to start your streak.</p>'}</section>${detailsHTML()}<footer class="footer"><span>${exact(data.eventCount)} local events · Updated ${new Date(data.updatedAt).toLocaleTimeString("en-US")}</span><span>${e(zone)}</span></footer>` : `<div class="compact-games">${projectHTML(1) || '<span class="hint">Build a game in Studio to start your streak.</span>'}</div>`}${data.partial || data.warnings.length ? `<p class="warning" role="status">Some history or token fields are unavailable. Totals cover reported usage only.${expanded ? " " + data.warnings.map(e).join(" ") : ""}</p>` : ""}${error ? `<p class="warning" role="alert">${e(error)}</p>` : ""}`;
+    if (expanded && tab === "changes")
+      root.querySelector(".files")?.insertAdjacentHTML("beforebegin", changesHTML());
+    root.querySelectorAll("details").forEach((d) => {
+      if (opened.includes(d.querySelector("summary")?.textContent)) d.open = true;
+    });
+    if (focus)
+      root.querySelector(`[data-date="${focus}"]`)?.focus({ preventScroll: true });
+    void loadImages();
+  }
+  async function loadImages() {
+    if (imageBusy || document.hidden || !data) return;
+    imageBusy = true;
+    try {
+      for (const p of data.projects.slice(0, expanded ? 12 : 1)) {
+        const meta = data.screenshots[p.name];
+        if (!meta || loaded.get(p.name) === meta.at) continue;
+        loaded.set(p.name, meta.at);
+        const shot = await api.call("action", "screenshot", { project: p.name });
+        if (!shot?.data) continue;
+        const image = new Image();
+        image.src = shot.data;
+        await image.decode();
+        if (image.naturalWidth > 16e3 || image.naturalHeight > 16e3) continue;
+        const canvas = document.createElement("canvas");
+        canvas.width = 480;
+        canvas.height = Math.max(
+          1,
+          Math.round(480 * image.naturalHeight / image.naturalWidth)
+        );
+        if (canvas.height > 1800) continue;
+        canvas.getContext("2d").drawImage(image, 0, 0, canvas.width, canvas.height);
+        thumbs.set(p.name, canvas.toDataURL("image/webp", 0.78));
+        if (thumbs.size > 24) thumbs.delete(thumbs.keys().next().value);
+        const img = root.querySelector(
+          `.game[data-project="${CSS.escape(p.name)}"] .shot`
+        );
+        if (img) {
+          img.replaceChildren();
+          const el = document.createElement("img");
+          el.src = thumbs.get(p.name);
+          el.alt = "Studio screenshot of " + p.name;
+          img.append(el);
+        }
+      }
+    } catch {
+    } finally {
+      imageBusy = false;
+    }
+  }
+  async function refresh(force = false) {
+    clearTimeout(timer);
+    if (busy) {
+      queued = queued || force;
+      return;
+    }
+    if (document.hidden) return schedule();
+    busy = true;
+    const seq = ++request, filterKey = [selectedProject, selectedModel, selectedDay].join("\0");
+    try {
+      const next = await api.call(
+        "action",
+        "analytics",
+        {
+          zone,
+          project: selectedProject,
+          model: selectedModel,
+          day: selectedDay
+        },
+        { timeoutMs: 18e4 }
+      );
+      if (seq !== request) return;
+      if (filterKey !== [selectedProject, selectedModel, selectedDay].join("\0")) {
+        queued = true;
+        return;
+      }
+      const signature = JSON.stringify({ ...next, updatedAt: void 0 });
+      const changed = signature !== lastSignature || !!error;
+      data = next;
+      lastSignature = signature;
+      error = "";
+      if (force || changed) render();
+    } catch (err) {
+      error = err instanceof Error ? err.message : String(err);
+      render();
+    } finally {
+      busy = false;
+      if (queued) {
+        queued = false;
+        void refresh(true);
+      } else schedule();
+    }
+  }
+  function schedule() {
+    if (live && !document.hidden) timer = setTimeout(() => void refresh(), 5e3);
+  }
+  async function openDay(day) {
+    try {
+      await api.call("customization.openDetails", void 0, { day });
+    } catch (err) {
+      error = String(err);
+      root.setAttribute("aria-label", error);
+    }
+  }
+  root.addEventListener("click", (event) => {
+    const target = event.target.closest("button");
+    if (!target) return;
+    if (target.dataset.date) {
+      if (embedded) {
+        void openDay(target.dataset.date);
+        return;
+      }
+      selectedDay = selectedDay === target.dataset.date ? "" : target.dataset.date;
+      void refresh(true);
+      return;
+    }
+    if (target.dataset.project) {
+      selectedProject = target.dataset.project;
+      void refresh(true);
+      return;
+    }
+    if (target.dataset.model) {
+      selectedModel = target.dataset.model;
+      void refresh(true);
+      return;
+    }
+    if (target.dataset.tab) {
+      tab = target.dataset.tab;
+      render();
+      return;
+    }
+    if (target.dataset.action === "compare") {
+      void compare();
+      return;
+    }
+    switch (target.dataset.action) {
+      case "refresh":
+        void refresh(true);
+        break;
+      case "clear-day":
+        selectedDay = "";
+        void refresh(true);
+        break;
+      case "reset-filters":
+        selectedDay = selectedProject = selectedModel = "";
+        void refresh(true);
+        break;
+      case "live":
+        live = !live;
+        clearTimeout(timer);
+        if (live) void refresh(true);
+        render();
+        break;
+      case "mount":
+        void api.call("customization.set", void 0, profile()).then(() => {
+          error = "";
+          render();
+        }).catch((err) => {
+          error = "New Chat requires the customization API from PR #112: " + String(err);
+          render();
+        });
+        break;
+    }
+  });
+  root.addEventListener("change", (event) => {
+    const select = event.target;
+    if (select.id === "project") selectedProject = select.value;
+    if (select.id === "model") selectedModel = select.value;
+    void refresh(true);
+  });
+  root.addEventListener("keydown", (event) => {
+    const target = event.target.closest(
+      "[data-index]"
+    );
+    if (!target) return;
+    const offsets = {
+      ArrowUp: -1,
+      ArrowDown: 1,
+      ArrowLeft: -7,
+      ArrowRight: 7
+    };
+    if (!(event.key in offsets)) return;
+    event.preventDefault();
+    const index = Math.max(
+      0,
+      Math.min(
+        root.querySelectorAll(".day").length - 1,
+        Number(target.dataset.index) + offsets[event.key]
+      )
+    );
+    target.tabIndex = -1;
+    const next = root.querySelector(`[data-index="${index}"]`);
+    next.tabIndex = 0;
+    next.focus();
+  });
+  root.addEventListener("focusin", (event) => {
+    const cell = event.target.closest(".day");
+    if (cell) root.querySelector("#day-info").textContent = cell.title;
+  });
+  document.addEventListener("visibilitychange", () => {
+    clearTimeout(timer);
+    if (!document.hidden) void refresh();
+  });
+  async function theme(context) {
+    const ctx = context || await api.call("context");
+    for (const [key, value] of Object.entries(object(ctx.theme)))
+      if (typeof value === "string" && /^(#[0-9a-f]{3,8}|rgba?\([\d.,%\s]+\))$/i.test(value))
+        document.documentElement.style.setProperty("--" + key, value);
+  }
+  api.onContextChanged(() => {
+    void theme().catch(() => {
+    });
+  });
+  window.addEventListener("resize", () => {
+    if (embedded && data) render();
+  });
+  document.body.classList.toggle("widget-page", embedded);
+  render();
+  void (async () => {
+    try {
+      const ctx = await api.call("context");
+      await theme(ctx);
+      if (!embedded && /^\d{4}-\d{2}-\d{2}$/.test(ctx.navigation?.day || "")) selectedDay = ctx.navigation.day;
+    } catch {
+    }
+    await refresh(true);
+  })();
+})();
+</script></body></html>

@@ -1,0 +1,6 @@
+node_modules/
+dist/
+.evidence/
+*.log
+scripts/install-local.ts
+scripts/verify-local.mjs
