@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile, cp } from "node:fs/promises";
+import { mkdir, readFile, writeFile, cp, readdir } from "node:fs/promises";
 import path from "node:path";
 const root = import.meta.dirname,
 	out = path.join(root, "dist");
@@ -51,7 +51,8 @@ for (const name of [...packages].sort()) {
 	const dir = path.join(root, "node_modules", name),
 		pkg = JSON.parse(await readFile(path.join(dir, "package.json"), "utf8"));
 	notices += `${name} ${pkg.version} (${pkg.license || "see license"})\n`;
-	for (const file of [
+	const licenseFiles = await readdir(dir);
+	for (const candidate of [
 		"LICENSE",
 		"LICENSE.md",
 		"LICENSE.txt",
@@ -59,16 +60,19 @@ for (const name of [...packages].sort()) {
 		"LICENSE-MIT.txt",
 	])
 		try {
+			const file = licenseFiles.find((name) => name.toLowerCase() === candidate.toLowerCase());
+			if (!file) continue;
 			notices += await readFile(path.join(dir, file), "utf8");
 			break;
 		} catch {}
 	notices += "\n\n";
 }
 await writeFile(path.join(out, "THIRD_PARTY_NOTICES.txt"), notices.replace(/\r\n/g, "\n").trimEnd() + "\n");
+const version = JSON.parse(await readFile(path.join(root, "package.json"), "utf8")).version;
 const manifest = {
 	apiVersion: 3,
 	id: "usage-streak",
-	version: "1.0.4",
+	version,
 	publisher: "TheAstrayDev",
 	name: "Usage-Streak",
 	description:

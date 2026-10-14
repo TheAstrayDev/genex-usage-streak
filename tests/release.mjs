@@ -19,7 +19,7 @@ try {
  await registry.installLocal(source,'local',manifest.capabilities,source);assert.equal(registry.list().find(p=>p.manifest.id===manifest.id).enabled,false);checks.push('fresh local install stays disabled');
  await registry.setEnabled(manifest.id,true);await registry.setSetting(manifest.id,'profile',profile);
  const answer=await registry.action(manifest.id,'analytics',{zone:'UTC'});assert.equal(answer.callCount,0);assert.deepEqual(answer.projects,[]);checks.push('harmless real backend analytics action succeeds immediately after enable');
- const update=path.join(root,'update');await cp(source,update,{recursive:true});manifest.version='1.0.5';await writeFile(path.join(update,'plugin.json'),JSON.stringify(manifest,null,2));
+ const update=path.join(root,'update');await cp(source,update,{recursive:true});manifest.version=manifest.version.split('.').map((v,i)=>i===2?Number(v)+1:v).join('.');await writeFile(path.join(update,'plugin.json'),JSON.stringify(manifest,null,2));
  await registry.installLocal(update,'local',manifest.capabilities,source);assert.equal((await registry.settings(manifest.id)).profile,profile);checks.push('settings survive same-identity update');
  await registry.setEnabled(manifest.id,false);await assert.rejects(registry.action(manifest.id,'analytics',{zone:'UTC'}));checks.push('disabled plugin cannot run actions');
  await registry.setEnabled(manifest.id,true);await registry.remove(manifest.id);assert.equal(registry.list().find(p=>p.manifest.id===manifest.id).removed,true);await assert.rejects(registry.action(manifest.id,'analytics',{zone:'UTC'}));checks.push('removed plugin cannot run actions');

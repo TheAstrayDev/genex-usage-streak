@@ -1,7 +1,7 @@
 {
   "apiVersion": 3,
   "id": "usage-streak",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "publisher": "TheAstrayDev",
   "name": "Usage-Streak",
   "description": "Local token activity by day, game and model, with saved Studio captures and a recorded activity tree. Requires unmerged customization API #112 plus footer/navigation hooks; incompatible with stock Genex.",
