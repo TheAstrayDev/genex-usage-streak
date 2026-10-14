@@ -1,5 +1,6 @@
 import { mkdir, readFile, writeFile, cp, readdir } from "node:fs/promises";
 import path from "node:path";
+import { flameAnimationCSS } from "./src/flame.ts";
 const root = import.meta.dirname,
 	out = path.join(root, "dist");
 const { build } = await import("esbuild");
@@ -18,7 +19,7 @@ for (const panel of ["streak", "dashboard"]) {
 	});
 	await writeFile(
 		path.join(out, panel + ".html"),
-		`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Usage-Streak</title><style>${css}</style></head><body><main id="root"></main><script>${sdk}</script><script>${result.outputFiles[0].text.replace(/<\/script/gi, "<\\/script")}</script></body></html>`,
+		`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Usage-Streak</title><style>${css}${panel === "streak" ? flameAnimationCSS() : ""}</style></head><body><main id="root"></main><script>${sdk}</script><script>${result.outputFiles[0].text.replace(/<\/script/gi, "<\\/script")}</script></body></html>`,
 	);
 }
 const backendBuild = await build({

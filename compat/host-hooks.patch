@@ -30,8 +30,28 @@ index 1db35aa..428e585 100644
    /** Host context changed; re-read status. No secrets are included in notifications. */
    onContextChanged(callback: () => void): () => void;
    call(method: "context"): Promise<PluginPanelContext>;
+diff --git a/src/renderer/appearance/CustomizationPanel.tsx b/src/renderer/appearance/CustomizationPanel.tsx
+index 5c8472f..137fcbd 100644
+--- a/src/renderer/appearance/CustomizationPanel.tsx
++++ b/src/renderer/appearance/CustomizationPanel.tsx
+@@ -5,7 +5,7 @@ import { usePlugins } from "../state/hooks.ts";
+ import { PluginPanelHost } from "../panels/PluginPanelHost.tsx";
+ const MESSAGE = { Failed: "The plugin widget could not be loaded." } as const;
+ /** Only host-reviewed settings panels can be selected by a saved customization profile. */
+-export function CustomizationPanel({ id, panel }: { id: string; panel: string }) {
++export function CustomizationPanel({ id, panel, bleed = false }: { id: string; panel: string; bleed?: boolean }) {
+   const plugin = usePlugins((state) => state.list.find((entry) => entry.manifest.id === id) ?? null);
+   const [document, setDocument] = useState<PluginPanelDocument | null>(null);
+   const [failed, setFailed] = useState(false);
+@@ -28,5 +28,5 @@ export function CustomizationPanel({ id, panel }: { id: string; panel: string })
+   if (failed) return <p>{MESSAGE.Failed}</p>;
+   const allowed = plugin?.manifest.panels.some((entry) => entry.id === panel && entry.placement === "settings");
+   if (!plugin || !document || !allowed) return null;
+-  return <PluginPanelHost plugin={plugin} document={document} project={null} className="h-full w-full border-0" />;
++  return <PluginPanelHost plugin={plugin} document={document} project={null} className={bleed ? "block h-[calc(100%+32px)] w-[calc(100%+32px)] -m-[16px] border-0" : "h-full w-full border-0"} />;
+ }
 diff --git a/src/renderer/appearance/PluginCustomizationHost.tsx b/src/renderer/appearance/PluginCustomizationHost.tsx
-index 55d81dc..0b622a7 100644
+index 55d81dc..cfc26e5 100644
 --- a/src/renderer/appearance/PluginCustomizationHost.tsx
 +++ b/src/renderer/appearance/PluginCustomizationHost.tsx
 @@ -30,12 +30,14 @@ function Widget({ widget, owner }: { widget: CustomizationWidget; owner: string
@@ -43,13 +63,23 @@ index 55d81dc..0b622a7 100644
          gridColumn: `${widget.column}/span ${widget.columnSpan}`,
          gridRow: `${widget.row}/span ${widget.rowSpan}`,
          minWidth: 0,
-+        minHeight: 0,
-         overflow: "hidden",
+-        overflow: "hidden",
 -        borderRadius: "var(--radius-card)",
++        minHeight: 0,
++        overflow: widget.target === CustomizationSlot.NewChatFooter ? "visible" : "hidden",
 +        borderRadius: widget.target === CustomizationSlot.NewChatFooter ? undefined : "var(--radius-card)",
          background: "var(--surface)",
          color: "var(--foreground)",
          padding: 8,
+@@ -48,7 +50,7 @@ function Widget({ widget, owner }: { widget: CustomizationWidget; owner: string
+         <img src={image} alt={label} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+       ) : null}
+       {text && <div>{text}</div>}
+-      {widget.panel ? <CustomizationPanel id={owner} panel={widget.panel} /> : null}
++      {widget.panel ? <CustomizationPanel id={owner} panel={widget.panel} bleed={widget.target === CustomizationSlot.NewChatFooter} /> : null}
+     </div>
+   );
+ }
 @@ -98,6 +100,7 @@ function Widgets({ profile, owner }: { profile: PluginCustomization | null; owne
      if (!widgets.length) return null;
      const grid = profile.layout.find((entry) => entry.target === target);

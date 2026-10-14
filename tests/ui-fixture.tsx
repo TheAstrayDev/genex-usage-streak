@@ -119,6 +119,7 @@ const fake = fakeStudioApi({
 		const a = args as any;
 		return {
 			...analytics(empty ? [] : events, { ...a, now: "2026-10-14T12:30:00Z" }),
+			streak: {current:fixtureStreak,longest:Math.max(60,fixtureStreak)},
 			screenshots: {},
 			warnings: [],
 			eventCount: empty ? 0 : events.length,
@@ -129,6 +130,7 @@ const fake = fakeStudioApi({
 window.studio = fake.api;
 initializeAppearance();
 await studio().plugins.refresh();
+let fixtureStreak=60;
 let goHome=()=>{};
 function Fixture(){const [setup,setSetup]=useState<string|null>(null);goHome=()=>setSetup(null);useEffect(()=>{const open=(event:Event)=>setSetup((event as CustomEvent).detail.plugin);window.addEventListener(OPEN_PLUGINS_EVENT,open);return()=>window.removeEventListener(OPEN_PLUGINS_EVENT,open);},[]);return <>
 	{setup ? <PluginsPanel setupPlugin={setup} plugins={[plugin()]} index={null} updating={false} onPluginsRefresh={()=>{void studio().plugins.refresh();}} onIndexRefresh={()=>{}} onBack={()=>setSetup(null)} sidebarHidden={false} onToggleSidebar={()=>{}}/> : <>
@@ -159,6 +161,7 @@ createRoot(document.querySelector("#root")!).render(<Fixture/>);
 Object.assign(window, {
 	streakTest: {
 		home:()=>goHome(),
+		streak:(days:number)=>{fixtureStreak=days;},
 		profile: () => profile,
 		reads: () => reads,
 		error: (v: boolean) => {

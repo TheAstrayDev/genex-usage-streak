@@ -1,3 +1,5 @@
+import { flameIcon } from "./flame.ts";
+import { streakAura, widgetDays } from "./widget.ts";
 import { profile, total, object, type Counts } from "./model.ts";
 declare const __EMBEDDED__: boolean;
 declare global {
@@ -84,6 +86,26 @@ function calendarHTML(compact = false) {
 			"",
 		)}</div></div></div><div class="calendar-foot"><span><span id="day-info">${selectedDay ? e(selectedDay) : e(data.zone)}</span>${selectedDay ? " " + button("clear-day", "Clear day") : ""}</span><span class="legend">Less ${[0, 1, 2, 3, 4].map((n) => `<i class="l${n}"></i>`).join("")} More</span></div>`;
 }
+const trophyIcon = `<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 3h10v7a5 5 0 0 1-10 0V3Zm0 2H3v3a4 4 0 0 0 4 4m10-7h4v3a4 4 0 0 1-4 4m-5 3v5m-4 1h8m-9 0h10"/></svg>`;
+function widgetHTML(sum:number) {
+ const aura=streakAura(data.streak.current);
+ root.dataset.aura=aura;
+ // A refreshed token total must not restart the ambient animation at its first frame.
+ root.style.setProperty("--aura-delay",`-${performance.now()/1000}s`);
+ const weeks=Math.max(5,Math.min(13,Math.floor((innerWidth-(innerWidth<=480?176:232))/18)));
+ root.style.setProperty("--weeks",String(weeks));
+ const days=widgetDays(data.days,data.today,weeks),max=Math.max(1,...days.map(day=>day.tokens));
+ let months="",last="";
+ for(let i=0;i<days.length;i+=7){
+  const month=new Date(days[i].date+"T12:00:00Z").toLocaleDateString("en-US",{month:"short",timeZone:"UTC"});
+  if(month!==last){months+=`<span style="grid-column:${i/7+1}/span ${Math.min(3,weeks-i/7)}">${month}</span>`;last=month;}
+ }
+ return `<div class="streak-overview"><div class="streak-eyebrow">CURRENT STREAK</div><div class="streak-count"><span class="streak-flame" title="${aura} aura">${flameIcon}</span><strong>${exact(data.streak.current)} <span>${data.streak.current===1?"day":"days"}</span></strong></div><div class="streak-total" title="${exact(sum)} reported tokens">${number(sum)} tokens</div><div class="streak-record">${trophyIcon}<span>Best: ${exact(data.streak.longest)} ${data.streak.longest===1?"day":"days"}</span></div></div><div class="widget-calendar"><div class="calendar"><div class="month-row">${months}</div><div class="weekdays" aria-hidden="true"><span>Mon</span><span>Wed</span><span>Fri</span><span>Sun</span></div><div class="heatmap" role="group" aria-label="Daily token usage">${days.map((day,i)=>{
+  if(day.future)return '<span class="day future l0" aria-hidden="true"></span>';
+  const level=day.tokens?Math.min(4,Math.max(1,Math.ceil(day.tokens/max*4))):0;
+  return `<button class="day l${level}" type="button" data-date="${day.date}" data-index="${i}" tabindex="${day.date===data.today?0:-1}" aria-label="${day.date}: ${exact(day.tokens)} reported tokens, ${day.projects} games" title="${day.date} · ${exact(day.tokens)} tokens · ${day.projects} games"></button>`;
+ }).join("")}</div></div></div>`;
+}
 function projectHTML(limit = 12) {
 	return data.projects
 		.slice(0, limit)
@@ -163,7 +185,7 @@ function render() {
 	}
 	const sum = total(data.counts);
 	if (embedded) {
-		root.innerHTML = `<div class="summary"><strong title="${exact(sum)} reported tokens">${number(sum)} <span>reported tokens</span></strong><span class="streak">${data.streak.current} day streak <span class="muted">· Best ${data.streak.longest}</span></span></div>${calendarHTML(true)}`;
+		root.innerHTML = widgetHTML(sum);
 		if (error) root.setAttribute("aria-label", error); else root.removeAttribute("aria-label");
 		return;
 	}
@@ -362,7 +384,7 @@ root.addEventListener("keydown", (event) => {
 	const index = Math.max(
 		0,
 		Math.min(
-			root.querySelectorAll(".day").length - 1,
+			root.querySelectorAll("button.day").length - 1,
 			Number(target.dataset.index) + offsets[event.key],
 		),
 	);
@@ -373,10 +395,12 @@ root.addEventListener("keydown", (event) => {
 });
 root.addEventListener("focusin", (event) => {
 	const cell = (event.target as HTMLElement).closest<HTMLElement>(".day");
-	if (cell) root.querySelector("#day-info")!.textContent = cell.title;
+	const info=root.querySelector("#day-info");
+	if (cell && info) info.textContent = cell.title;
 });
 document.addEventListener("visibilitychange", () => {
 	clearTimeout(timer);
+	document.body.classList.toggle("motion-paused",document.hidden);
 	if (!document.hidden) void refresh();
 });
 async function theme(context?: any) {

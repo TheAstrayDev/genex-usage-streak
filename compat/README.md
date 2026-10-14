@@ -1,6 +1,6 @@
 # Unreleased host contract
 
-Usage-Streak 1.0.5 is for a development host only. It cannot run on standard Genex. The customization API proposal is [genex-desktop#112](https://github.com/genex-games/genex-desktop/pull/112), with design discussion in [#111](https://github.com/genex-games/genex-desktop/issues/111). Neither acceptance nor a future release date is promised.
+Usage-Streak 1.0.8 is for a development host only. It cannot run on standard Genex. The customization API proposal is [genex-desktop#112](https://github.com/genex-games/genex-desktop/pull/112), with design discussion in [#111](https://github.com/genex-games/genex-desktop/issues/111). Neither acceptance nor a future release date is promised.
 
 The screenshot host is a locally patched Windows Genex 0.1.7 build. The plugin source is platform-neutral JavaScript and TypeScript; native macOS and Linux acceptance has not been run.
 
@@ -8,6 +8,7 @@ The included `host-hooks.patch` is a reference for maintainers. It applies after
 
 - `newChatFooter`, a host-owned anchor directly under the composer, with a full-width 160px widget area using the prompt's border and rounding.
 - `customization.openDetails({day})`, bound to the calling enabled customization plugin's own primary settings panel. No plugin id or URL can be supplied. Dates and extra arguments are validated.
+- A fixed 16px transparent panel overscan inside that footer, allowing the aura to reach at most 7px beyond its card. The iframe keeps its sandbox, origin isolation and existing bridge; no arbitrary clipping or frame bounds are plugin-controlled.
 - `context.features.uiPanelNavigation: 1` and `context.navigation.day` for that destination, with bounded short-lived navigation state.
 
 These hooks are not currently part of PR #112. Merging #112 by itself will not make this build compatible. The catalog submission is held for review until a supported host contract exists; its version floor cannot express an unmerged feature. The reference patch preserves PR #112's file picker, structured panel errors and other unrelated APIs. It adds no Windows port or custom theme.
