@@ -7308,8 +7308,10 @@ function analytics(entries, filter) {
       out.set(c[key], add(out.get(c[key]) || zero(), c.counts));
     return [...out].map(([name, counts]) => ({ name, counts, total: total(counts) })).sort((a, b) => b.total - a.total);
   };
+  const recordedDates = selected.map((call) => dayKey(call.at, filter.zone)).sort();
   return {
     today,
+    period: { first: recordedDates[0] ?? null, last: recordedDates.at(-1) ?? null },
     zone: filter.zone,
     counts: selected.reduce((s, c) => add(s, c.counts), zero()),
     callCount: new Set(

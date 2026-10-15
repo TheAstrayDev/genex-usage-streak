@@ -15,6 +15,11 @@
 * {
 	box-sizing: border-box;
 }
+/* Use Genex's theme accent fill and selection text inside the isolated plugin frame. */
+::selection {
+	background: var(--selection-background, var(--accent));
+	color: #ffffff;
+}
 body {
 	margin: 0;
 	background: var(--background);
@@ -705,21 +710,22 @@ select option {
   --l2: color-mix(in srgb, var(--accent) 50%, transparent);
   --l3: color-mix(in srgb, var(--accent) 80%, transparent);
   --l4: color-mix(in srgb, var(--accent) 76%, var(--foreground));
-  display: grid; grid-template-columns: 164px minmax(0,1fr); gap: 20px;
-  width: 100%; height: 100vh; padding: 24px; overflow: visible; position: relative; isolation: isolate;
+  display: grid; grid-template-columns: minmax(0,190px) 164px; justify-content:center; gap: 18px;
+  width: 100%; height: 100vh; padding: 10px 16px; overflow: visible; position: relative; isolation: isolate;
   color: var(--foreground); font-family: "Zalando Sans SemiExpanded", system-ui, sans-serif;
 }
 /* The transparent panel reveals the host surface, shared with the prompt composer. */
-.streak-overview { display: flex; flex-direction: column; justify-content: center; gap: 9px; min-width: 0; position: relative; }
-.streak-eyebrow { color: var(--widget-muted); font-size: 11px; font-weight: 450; line-height: 16px; letter-spacing: .25px; }
-.streak-count { display: flex; align-items: center; gap: 12px; position: relative; min-height: 34px; }
-.streak-count strong { font-size: 26px; line-height: 34px; font-weight: 550; letter-spacing: -.6px; white-space: nowrap; position: relative; }
+/* A single vertical summary keeps the metrics beside the calendar, never spread across a spare column. */
+.streak-overview { display:flex; flex-direction:column; justify-content:center; align-items:flex-start; min-width:0; position:relative; }
+.streak-eyebrow { color:var(--widget-muted); font-size:13px; font-weight:400; line-height:16px; }
+.streak-count { display:flex; align-items:center; gap:7px; position:relative; margin-top:6px; min-height:32px; }
+.streak-count strong { font-size:14px; line-height:18px; font-weight:400; white-space:nowrap; position:relative; }
 .streak-count strong span { font-weight: 450; }
 .streak-total, .streak-record { color: var(--widget-muted); font-size: 14px; line-height: 20px; font-weight: 400; white-space: nowrap; font-variant-numeric: tabular-nums; }
-.streak-record { display: flex; align-items: center; gap: 10px; }
-.streak-record svg { width: 19px; height: 19px; stroke: currentColor; stroke-width: 1.35; stroke-linecap: round; stroke-linejoin: round; flex: none; }
-.streak-flame { position: relative; display: grid; place-items: center; width: 26px; height: 32px; flex: none; color: var(--aura); isolation: isolate; }
-.streak-flame svg { width: 26px; height: 32px; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; position: relative; filter: drop-shadow(0 0 3px color-mix(in srgb, var(--aura) 45%, transparent)); }
+.streak-record { display: flex; align-items: center; gap: 4px; font-size: 12px; line-height: 16px; }
+.streak-record svg { width: 12px; height: 12px; stroke: currentColor; stroke-width: 1.35; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.streak-flame { position: relative; display: grid; place-items: center; width: 24px; height: 30px; flex: none; color: var(--aura); isolation: isolate; }
+.streak-flame svg { width: 24px; height: 30px; stroke: currentColor; stroke-width: 1.2; stroke-linecap: round; stroke-linejoin: round; position: relative; filter: drop-shadow(0 0 3px color-mix(in srgb, var(--aura) 45%, transparent)); }
 .streak-flame::before, .streak-flame::after { content: ""; position: absolute; pointer-events: none; z-index: -1; border-radius: 50%; will-change: transform, opacity; animation: streak-breathe var(--aura-cycle,7.6s) cubic-bezier(.45,0,.55,1) infinite; animation-delay: var(--aura-delay,0s); }
 .streak-flame::before { inset: var(--aura-extent,-27px -26px); background: radial-gradient(ellipse, color-mix(in srgb, var(--aura) var(--aura-energy,25%), transparent) 0%, color-mix(in srgb, var(--aura-secondary) 12%, transparent) 30%, transparent 70%); filter: blur(9px); }
 .streak-flame::after { inset: var(--aura-core,-11px -10px); background: radial-gradient(ellipse, color-mix(in srgb, var(--aura-secondary) 38%, transparent), transparent 65%); filter: blur(5px); animation-name: streak-drift; animation-duration: var(--aura-echo,10.4s); }
@@ -731,32 +737,49 @@ select option {
 .compact[data-aura="violet"] { --aura: #c2adf5; --aura-secondary: #8e8ae3; --aura-energy: 28%; --aura-extent: -23px -34px; --aura-cycle: 10s; --aura-echo: 12.4s; }
 .compact[data-aura="aurora"] { --aura: #a0c6f5; --aura-secondary: #8bdbce; --aura-energy: 30%; --aura-extent: -28px -36px; --aura-core: -12px -16px; --aura-cycle: 9.6s; --aura-echo: 13.2s; }
 .compact[data-aura="solar"] { --aura: #f2dfb3; --aura-secondary: #dcb584; --aura-energy: 33%; --aura-extent: -30px -34px; --aura-core: -15px -13px; --aura-cycle: 8s; --aura-echo: 11.2s; }
-.compact .widget-calendar { min-width: 0; min-height: 0; }
-.compact .calendar { width: 100%; min-width: 0; height: 100%; grid-template-columns: 28px minmax(0,1fr); grid-template-rows: 16px minmax(0,1fr); column-gap: 9px; row-gap: 8px; }
-.compact .heatmap { grid-template-columns: repeat(var(--weeks),minmax(0,1fr)); grid-template-rows: repeat(7,minmax(0,1fr)); gap: 3px 4px; height: 100%; align-content: stretch; }
-.compact .month-row { grid-template-columns: repeat(var(--weeks),minmax(0,1fr)); gap: 4px; color: var(--widget-muted); font-size: 11px; line-height: 16px; }
-.compact .month-row span { grid-row: 1; }
-.compact .weekdays { display: grid; grid-template-rows: repeat(7,minmax(0,1fr)); gap: 3px; font-size: 10px; line-height: 1; padding: 0; align-items: center; justify-content: initial; color: var(--widget-muted); }
-.compact .weekdays span:nth-child(2) { grid-row: 3; }
-.compact .weekdays span:nth-child(3) { grid-row: 5; }
-.compact .weekdays span:nth-child(4) { grid-row: 7; }
-.compact .day { border-radius: 2px; }
-.compact .day.l0 { background: color-mix(in srgb, var(--foreground) 6%, transparent); border-color: color-mix(in srgb, var(--foreground) 7%, transparent); }
-.compact .day.future { opacity: .48; }
+.usage-total { display:flex; align-items:baseline; gap:7px; margin-top:3px; white-space:nowrap; }
+.usage-total strong { font-size:24px; line-height:28px; font-weight:450; letter-spacing:-.35px; }
+.usage-total > span { color:var(--widget-muted); font-size:14px; }
+.compact[data-empty="true"] .usage-total strong { font-size:22px; letter-spacing:-.2px; }
+.usage-period { color:var(--widget-muted); font-size:12px; line-height:16px; margin-top:2px; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.streak-label { display:none; }
+.streak-copy { display:flex; flex-direction:column; min-width:0; }
+.streak-flame::before { inset-block:-16px; }
+.compact .widget-calendar { display:grid; grid-template-rows:16px 14px 44px 16px; gap:3px; align-self:center; width:164px; min-width:0; }
+.calendar-heading { display:flex; align-items:center; justify-content:space-between; color:var(--widget-muted); font-size:12px; line-height:16px; white-space:nowrap; }
+.calendar-heading > span:first-child { color:var(--foreground); font-weight:400; }
+.widget-weekdays { display:grid; grid-template-columns:repeat(7,20px); gap:4px; color:var(--widget-muted); text-align:center; font-size:12px; line-height:14px; }
+.compact .heatmap { grid-auto-flow:row; grid-template-columns:repeat(7,20px); grid-template-rows:repeat(2,20px); gap:4px; width:164px; height:44px; align-content:start; }
+.compact .day { border-radius:3px; }
+.compact .day.l0 { background:color-mix(in srgb,var(--foreground) 6%,transparent); border-color:color-mix(in srgb,var(--foreground) 7%,transparent); }
+.compact .day.month-start { border-top-color:color-mix(in srgb,var(--foreground) 50%,transparent); }
+.compact .day.future { opacity:.48; }
+.compact button.day:hover { filter:brightness(1.2); outline:1px solid var(--foreground); outline-offset:1px; }
+.widget-key { display:flex; align-items:center; justify-content:flex-end; color:var(--widget-muted); font-size:12px; line-height:16px; white-space:nowrap; }
+.widget-legend { display:flex; align-items:center; gap:3px; }
+.widget-legend i { display:block; width:6px; height:7px; border-radius:1px; }
+.widget-legend .l0 { background:color-mix(in srgb,var(--foreground) 6%,transparent); }
 @keyframes streak-breathe { 0%,100% { transform: translate(-1px,2px) scale(.92); opacity: .5; } 50% { transform: translate(1px,-2px) scale(1.07); opacity: .9; } }
 @keyframes streak-drift { 0%,100% { transform: translate(2px,1px) scale(.94,.98); opacity: .45; } 50% { transform: translate(-2px,-2px) scale(1.04,1.08); opacity: .8; } }
 .motion-paused .streak-flame::before, .motion-paused .streak-flame::after { animation-play-state: paused; }
-@media (max-width: 480px) {
-  .compact { grid-template-columns: 108px minmax(0,1fr); gap: 12px; }
-  .streak-eyebrow { font-size: 9px; letter-spacing: 0; }
-  .streak-count { gap: 7px; }
-  .streak-count strong { font-size: 21px; }
-  .streak-flame, .streak-flame svg { width: 21px; height: 28px; }
-  .streak-total, .streak-record { font-size: 11px; }
-  .streak-record { gap: 7px; }
-  .streak-record svg { width: 16px; height: 16px; }
-  .compact .calendar { grid-template-columns: 23px minmax(0,1fr); column-gap: 5px; }
-  .compact .month-row, .compact .weekdays { font-size: 9px; }
+.widget-open-today { display:none; }
+/* Preserve readable labels when the available width cannot accommodate the activity strip. */
+@media (max-width:360px) {
+ .compact { display:flex; align-items:center; justify-content:center; padding:8px 18px; }
+ .streak-overview { width:100%; }
+ .compact .widget-calendar { display:none; }
+ .streak-eyebrow { font-size:12px; line-height:14px; }
+ .usage-total { flex-wrap:wrap; column-gap:5px; row-gap:0; }
+ .usage-total strong { font-size:24px; line-height:28px; }
+ .usage-total > span { font-size:12px; line-height:14px; }
+ .usage-period { line-height:14px; }
+ .compact[data-empty="true"] .usage-total strong { font-size:22px; white-space:normal; line-height:25px; }
+ .streak-count { gap:6px; margin-top:4px; min-height:28px; }
+ .streak-count strong { font-size:14px; line-height:18px; }
+ .streak-record { font-size:12px; line-height:14px; }
+ .streak-flame,.streak-flame svg { width:18px; height:27px; }
+ .streak-flame::before,.streak-flame::after { inset-block:-8px; }
+ .widget-open-today { display:block; padding:0; margin-top:2px; font:inherit; font-size:12px; line-height:16px; border:0; border-radius:3px; background:transparent; color:var(--foreground); text-decoration:underline; text-underline-offset:3px; cursor:pointer; }
 }
 @media (prefers-reduced-motion: reduce) {
   .streak-flame::before, .streak-flame::after { animation: none; transform: none; opacity: .6; will-change: auto; }
@@ -824,6 +847,58 @@ window.addEventListener("pagehide", () => {
 });
 </script><script>"use strict";
 (() => {
+  // vendor/genex-color.ts
+  var channel = (color, at) => parseInt(color.slice(at, at + 2), 16) / 255;
+  var channels = (color) => [channel(color, 1), channel(color, 3), channel(color, 5)];
+  function rgbHex(c) {
+    return "#" + c.map(
+      (v) => Math.round(Math.min(1, Math.max(0, v)) * 255).toString(16).padStart(2, "0")
+    ).join("");
+  }
+  var toLinear = (v) => v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+  var toGamma = (v) => v <= 31308e-7 ? v * 12.92 : 1.055 * v ** (1 / 2.4) - 0.055;
+  function oklch(color) {
+    const [r, g, b] = channels(color).map(toLinear);
+    const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b), m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b), s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
+    const L = 0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s, A = 1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s, B = 0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s;
+    return [L, Math.hypot(A, B), Math.atan2(B, A)];
+  }
+  function fromOklch(L, C, h) {
+    for (let c = C; ; c *= 0.96) {
+      const A = c * Math.cos(h), B = c * Math.sin(h);
+      const l = (L + 0.3963377774 * A + 0.2158037573 * B) ** 3, m = (L - 0.1055613458 * A - 0.0638541728 * B) ** 3, s = (L - 0.0894841775 * A - 1.291485548 * B) ** 3;
+      const rgb = [
+        4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s,
+        -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
+        -0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s
+      ];
+      if (rgb.every((v) => v >= -1e-4 && v <= 1.0001) || c < 1e-3) return rgbHex(rgb.map(toGamma));
+    }
+  }
+
+  // src/selection.ts
+  var LIGHTNESS_BISECTIONS = 24;
+  function luminance(color) {
+    const [r, g, b] = channels(color).map((v) => v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
+    return r * 0.2126 + g * 0.7152 + b * 0.0722;
+  }
+  function contrastRatio(a, b) {
+    const x = luminance(a), y = luminance(b);
+    return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05);
+  }
+  function underWhite(color, ratio) {
+    const [L, C, h] = oklch(color);
+    if (contrastRatio(color, "#ffffff") >= ratio) return color;
+    let lo = 0, hi = L;
+    for (let i = 0; i < LIGHTNESS_BISECTIONS; i++) {
+      const mid = (lo + hi) / 2;
+      if (contrastRatio(fromOklch(mid, C, h), "#ffffff") >= ratio) lo = mid;
+      else hi = mid;
+    }
+    return fromOklch(lo, C, h);
+  }
+  var selectionFill = (accent) => underWhite(accent, 5);
+
   // src/flame.ts
   var FLAME_FPS = 24;
   var FLAME_SECONDS = 2;
@@ -905,8 +980,8 @@ window.addEventListener("pagehide", () => {
           panel: "streak",
           column: 1,
           row: 1,
-          columnSpan: 12,
-          rowSpan: 24
+          columnSpan: 8,
+          rowSpan: 18
         }
       ]
     };
@@ -972,25 +1047,23 @@ window.addEventListener("pagehide", () => {
   }
   var trophyIcon = `<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 3h10v7a5 5 0 0 1-10 0V3Zm0 2H3v3a4 4 0 0 0 4 4m10-7h4v3a4 4 0 0 1-4 4m-5 3v5m-4 1h8m-9 0h10"/></svg>`;
   function widgetHTML(sum) {
-    const aura = streakAura(data.streak.current);
+    const aura = streakAura(data.streak.current), weeks = 2;
     root.dataset.aura = aura;
+    root.dataset.empty = String(sum === 0);
     root.style.setProperty("--aura-delay", `-${performance.now() / 1e3}s`);
-    const weeks = Math.max(5, Math.min(13, Math.floor((innerWidth - (innerWidth <= 480 ? 176 : 232)) / 18)));
     root.style.setProperty("--weeks", String(weeks));
     const days = widgetDays(data.days, data.today, weeks), max = Math.max(1, ...days.map((day) => day.tokens));
-    let months = "", last = "";
-    for (let i = 0; i < days.length; i += 7) {
-      const month = (/* @__PURE__ */ new Date(days[i].date + "T12:00:00Z")).toLocaleDateString("en-US", { month: "short", timeZone: "UTC" });
-      if (month !== last) {
-        months += `<span style="grid-column:${i / 7 + 1}/span ${Math.min(3, weeks - i / 7)}">${month}</span>`;
-        last = month;
-      }
-    }
-    return `<div class="streak-overview"><div class="streak-eyebrow">CURRENT STREAK</div><div class="streak-count"><span class="streak-flame" title="${aura} aura">${flameIcon}</span><strong>${exact(data.streak.current)} <span>${data.streak.current === 1 ? "day" : "days"}</span></strong></div><div class="streak-total" title="${exact(sum)} reported tokens">${number(sum)} tokens</div><div class="streak-record">${trophyIcon}<span>Best: ${exact(data.streak.longest)} ${data.streak.longest === 1 ? "day" : "days"}</span></div></div><div class="widget-calendar"><div class="calendar"><div class="month-row">${months}</div><div class="weekdays" aria-hidden="true"><span>Mon</span><span>Wed</span><span>Fri</span><span>Sun</span></div><div class="heatmap" role="group" aria-label="Daily token usage">${days.map((day, i) => {
+    const label = (date) => (/* @__PURE__ */ new Date(date + "T12:00:00Z")).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+    const first = data.period?.first, last = data.period?.last;
+    const period = first && last ? first === last ? `${label(first)}, ${last.slice(0, 4)}` : `${label(first)}${first.slice(0, 4) !== last.slice(0, 4) ? ", " + first.slice(0, 4) : ""} - ${label(last)}, ${last.slice(0, 4)}` : sum ? "Recorded history" : "No recorded usage yet";
+    const bounds = `${label(days[0].date)} - ${label(data.today)}`;
+    const best = `Best: ${exact(data.streak.longest)} ${data.streak.longest === 1 ? "day" : "days"}`;
+    return `<div class="streak-overview"><div class="streak-eyebrow">Usage activity</div><div class="usage-total" aria-label="${exact(sum)} reported tokens"><strong>${sum ? number(sum) : "Ready to build"}</strong>${sum ? "<span>tokens</span>" : ""}</div><div class="usage-period" title="Reported local usage: ${e(period)}">${e(period)}</div><div class="streak-count" aria-label="Current streak: ${exact(data.streak.current)} days. ${best}"><span class="streak-flame" title="${aura} aura">${flameIcon}</span><div class="streak-copy"><small class="streak-label">Current streak</small><strong>${data.streak.current ? exact(data.streak.current) + " day streak" : "Start a streak"}</strong><span class="streak-record">${trophyIcon}${best}</span></div></div><button class="widget-open-today" type="button" data-date="${data.today}">View today &#8599;</button></div><div class="widget-calendar"><div class="calendar-heading"><span>Select a day</span><span title="${bounds}">2 weeks</span></div><div class="widget-weekdays" aria-hidden="true">${["M", "T", "W", "T", "F", "S", "S"].map((d) => `<span>${d}</span>`).join("")}</div><div class="heatmap" role="group" aria-label="Reported token activity: ${bounds}. Select a day for details.">${days.map((day, i) => {
       if (day.future) return '<span class="day future l0" aria-hidden="true"></span>';
       const level = day.tokens ? Math.min(4, Math.max(1, Math.ceil(day.tokens / max * 4))) : 0;
-      return `<button class="day l${level}" type="button" data-date="${day.date}" data-index="${i}" tabindex="${day.date === data.today ? 0 : -1}" aria-label="${day.date}: ${exact(day.tokens)} reported tokens, ${day.projects} games" title="${day.date} · ${exact(day.tokens)} tokens · ${day.projects} games"></button>`;
-    }).join("")}</div></div></div>`;
+      const marker = day.date.endsWith("-01") ? " month-start" : "";
+      return `<button class="day l${level}${marker}" type="button" data-date="${day.date}" data-index="${i}" tabindex="${day.date === data.today ? 0 : -1}" aria-label="${day.date}: ${exact(day.tokens)} reported tokens, ${day.projects} games. Open day details." title="${label(day.date)} · ${exact(day.tokens)} tokens · ${day.projects} games · Open details"></button>`;
+    }).join("")}</div><div class="widget-key"><span class="widget-legend" aria-label="Token volume: darker means fewer tokens, brighter means more. Relative to the busiest visible day." title="Token volume relative to the busiest visible day (${exact(max)} tokens)">Less ${[0, 1, 2, 3, 4].map((n) => `<i class="l${n}" title="${n === 0 ? "No reported tokens" : `${(n - 1) * 25}-${n * 25}% of the peak day`}"></i>`).join("")} More</span></div></div>`;
   }
   function projectHTML(limit = 12) {
     return data.projects.slice(0, limit).map((p) => {
@@ -1234,12 +1307,7 @@ window.addEventListener("pagehide", () => {
       "[data-index]"
     );
     if (!target) return;
-    const offsets = {
-      ArrowUp: -1,
-      ArrowDown: 1,
-      ArrowLeft: -7,
-      ArrowRight: 7
-    };
+    const offsets = embedded ? { ArrowUp: -7, ArrowDown: 7, ArrowLeft: -1, ArrowRight: 1 } : { ArrowUp: -1, ArrowDown: 1, ArrowLeft: -7, ArrowRight: 7 };
     if (!(event.key in offsets)) return;
     event.preventDefault();
     const index = Math.max(
@@ -1269,6 +1337,8 @@ window.addEventListener("pagehide", () => {
     for (const [key, value] of Object.entries(object(ctx.theme)))
       if (typeof value === "string" && /^(#[0-9a-f]{3,8}|rgba?\([\d.,%\s]+\))$/i.test(value))
         document.documentElement.style.setProperty("--" + key, value);
+    const accent = document.documentElement.style.getPropertyValue("--accent");
+    if (/^#[0-9a-f]{6}$/i.test(accent)) document.documentElement.style.setProperty("--selection-background", selectionFill(accent));
   }
   api.onContextChanged(() => {
     void theme().catch(() => {

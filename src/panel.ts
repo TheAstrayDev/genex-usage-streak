@@ -1,3 +1,4 @@
+import { selectionFill } from "./selection.ts";
 import { flameIcon } from "./flame.ts";
 import { streakAura, widgetDays } from "./widget.ts";
 import { profile, total, object, type Counts } from "./model.ts";
@@ -87,24 +88,24 @@ function calendarHTML(compact = false) {
 		)}</div></div></div><div class="calendar-foot"><span><span id="day-info">${selectedDay ? e(selectedDay) : e(data.zone)}</span>${selectedDay ? " " + button("clear-day", "Clear day") : ""}</span><span class="legend">Less ${[0, 1, 2, 3, 4].map((n) => `<i class="l${n}"></i>`).join("")} More</span></div>`;
 }
 const trophyIcon = `<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 3h10v7a5 5 0 0 1-10 0V3Zm0 2H3v3a4 4 0 0 0 4 4m10-7h4v3a4 4 0 0 1-4 4m-5 3v5m-4 1h8m-9 0h10"/></svg>`;
-function widgetHTML(sum:number) {
- const aura=streakAura(data.streak.current);
- root.dataset.aura=aura;
- // A refreshed token total must not restart the ambient animation at its first frame.
- root.style.setProperty("--aura-delay",`-${performance.now()/1000}s`);
- const weeks=Math.max(5,Math.min(13,Math.floor((innerWidth-(innerWidth<=480?176:232))/18)));
- root.style.setProperty("--weeks",String(weeks));
- const days=widgetDays(data.days,data.today,weeks),max=Math.max(1,...days.map(day=>day.tokens));
- let months="",last="";
- for(let i=0;i<days.length;i+=7){
-  const month=new Date(days[i].date+"T12:00:00Z").toLocaleDateString("en-US",{month:"short",timeZone:"UTC"});
-  if(month!==last){months+=`<span style="grid-column:${i/7+1}/span ${Math.min(3,weeks-i/7)}">${month}</span>`;last=month;}
- }
- return `<div class="streak-overview"><div class="streak-eyebrow">CURRENT STREAK</div><div class="streak-count"><span class="streak-flame" title="${aura} aura">${flameIcon}</span><strong>${exact(data.streak.current)} <span>${data.streak.current===1?"day":"days"}</span></strong></div><div class="streak-total" title="${exact(sum)} reported tokens">${number(sum)} tokens</div><div class="streak-record">${trophyIcon}<span>Best: ${exact(data.streak.longest)} ${data.streak.longest===1?"day":"days"}</span></div></div><div class="widget-calendar"><div class="calendar"><div class="month-row">${months}</div><div class="weekdays" aria-hidden="true"><span>Mon</span><span>Wed</span><span>Fri</span><span>Sun</span></div><div class="heatmap" role="group" aria-label="Daily token usage">${days.map((day,i)=>{
-  if(day.future)return '<span class="day future l0" aria-hidden="true"></span>';
-  const level=day.tokens?Math.min(4,Math.max(1,Math.ceil(day.tokens/max*4))):0;
-  return `<button class="day l${level}" type="button" data-date="${day.date}" data-index="${i}" tabindex="${day.date===data.today?0:-1}" aria-label="${day.date}: ${exact(day.tokens)} reported tokens, ${day.projects} games" title="${day.date} · ${exact(day.tokens)} tokens · ${day.projects} games"></button>`;
- }).join("")}</div></div></div>`;
+function widgetHTML(sum: number) {
+    const aura = streakAura(data.streak.current), weeks = 2;
+    root.dataset.aura = aura;
+    root.dataset.empty = String(sum === 0);
+    root.style.setProperty("--aura-delay", `-${performance.now() / 1000}s`);
+    root.style.setProperty("--weeks", String(weeks));
+    const days = widgetDays(data.days, data.today, weeks), max = Math.max(1, ...days.map((day) => day.tokens));
+    const label = (date: string) => new Date(date + "T12:00:00Z").toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+    const first = data.period?.first, last = data.period?.last;
+    const period = first && last ? first === last ? `${label(first)}, ${last.slice(0, 4)}` : `${label(first)}${first.slice(0, 4) !== last.slice(0, 4) ? ", " + first.slice(0, 4) : ""} - ${label(last)}, ${last.slice(0, 4)}` : sum ? "Recorded history" : "No recorded usage yet";
+    const bounds = `${label(days[0].date)} - ${label(data.today)}`;
+    const best = `Best: ${exact(data.streak.longest)} ${data.streak.longest === 1 ? "day" : "days"}`;
+    return `<div class="streak-overview"><div class="streak-eyebrow">Usage activity</div><div class="usage-total" aria-label="${exact(sum)} reported tokens"><strong>${sum ? number(sum) : "Ready to build"}</strong>${sum ? "<span>tokens</span>" : ""}</div><div class="usage-period" title="Reported local usage: ${e(period)}">${e(period)}</div><div class="streak-count" aria-label="Current streak: ${exact(data.streak.current)} days. ${best}"><span class="streak-flame" title="${aura} aura">${flameIcon}</span><div class="streak-copy"><small class="streak-label">Current streak</small><strong>${data.streak.current ? exact(data.streak.current) + " day streak" : "Start a streak"}</strong><span class="streak-record">${trophyIcon}${best}</span></div></div><button class="widget-open-today" type="button" data-date="${data.today}">View today &#8599;</button></div><div class="widget-calendar"><div class="calendar-heading"><span>Select a day</span><span title="${bounds}">2 weeks</span></div><div class="widget-weekdays" aria-hidden="true">${["M", "T", "W", "T", "F", "S", "S"].map((d) => `<span>${d}</span>`).join("")}</div><div class="heatmap" role="group" aria-label="Reported token activity: ${bounds}. Select a day for details.">${days.map((day, i) => {
+      if (day.future) return '<span class="day future l0" aria-hidden="true"></span>';
+      const level = day.tokens ? Math.min(4, Math.max(1, Math.ceil(day.tokens / max * 4))) : 0;
+      const marker = day.date.endsWith("-01") ? " month-start" : "";
+      return `<button class="day l${level}${marker}" type="button" data-date="${day.date}" data-index="${i}" tabindex="${day.date === data.today ? 0 : -1}" aria-label="${day.date}: ${exact(day.tokens)} reported tokens, ${day.projects} games. Open day details." title="${label(day.date)} · ${exact(day.tokens)} tokens · ${day.projects} games · Open details"></button>`;
+    }).join("")}</div><div class="widget-key"><span class="widget-legend" aria-label="Token volume: darker means fewer tokens, brighter means more. Relative to the busiest visible day." title="Token volume relative to the busiest visible day (${exact(max)} tokens)">Less ${[0, 1, 2, 3, 4].map((n) => `<i class="l${n}" title="${n === 0 ? "No reported tokens" : `${(n - 1) * 25}-${n * 25}% of the peak day`}"></i>`).join("")} More</span></div></div>`;
 }
 function projectHTML(limit = 12) {
 	return data.projects
@@ -373,12 +374,9 @@ root.addEventListener("keydown", (event) => {
 		"[data-index]",
 	);
 	if (!target) return;
-	const offsets: Record<string, number> = {
-		ArrowUp: -1,
-		ArrowDown: 1,
-		ArrowLeft: -7,
-		ArrowRight: 7,
-	};
+	const offsets: Record<string, number> = embedded
+ ? { ArrowUp: -7, ArrowDown: 7, ArrowLeft: -1, ArrowRight: 1 }
+ : { ArrowUp: -1, ArrowDown: 1, ArrowLeft: -7, ArrowRight: 7 };
 	if (!(event.key in offsets)) return;
 	event.preventDefault();
 	const index = Math.max(
@@ -411,6 +409,8 @@ async function theme(context?: any) {
 			/^(#[0-9a-f]{3,8}|rgba?\([\d.,%\s]+\))$/i.test(value)
 		)
 			document.documentElement.style.setProperty("--" + key, value);
+ const accent=document.documentElement.style.getPropertyValue("--accent");
+ if (/^#[0-9a-f]{6}$/i.test(accent)) document.documentElement.style.setProperty("--selection-background",selectionFill(accent));
 }
 api.onContextChanged(() => {
 	void theme().catch(() => {});

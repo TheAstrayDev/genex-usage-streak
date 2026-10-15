@@ -1,6 +1,6 @@
 # Unreleased host contract
 
-Usage-Streak 1.0.8 is for a development host only. It cannot run on standard Genex. The customization API proposal is [genex-desktop#112](https://github.com/genex-games/genex-desktop/pull/112), with design discussion in [#111](https://github.com/genex-games/genex-desktop/issues/111). Neither acceptance nor a future release date is promised.
+Usage-Streak 1.0.14 is for a development host only. It cannot run on standard Genex. The customization API proposal is [genex-desktop#112](https://github.com/genex-games/genex-desktop/pull/112), with design discussion in [#111](https://github.com/genex-games/genex-desktop/issues/111). Neither acceptance nor a future release date is promised.
 
 The screenshot host is a locally patched Windows Genex 0.1.7 build. The plugin source is platform-neutral JavaScript and TypeScript; native macOS and Linux acceptance has not been run.
 

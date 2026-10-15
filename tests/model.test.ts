@@ -207,5 +207,13 @@ test("widget composition has no appearance overrides", () => {
 	assert.deepEqual(Object.keys(profile()), ["version", "widgets"]);
 	assert.equal(profile().widgets[0].target, "newChatFooter");
 	assert.equal(profile().widgets[0].row, 1);
-	assert.equal(profile().widgets[0].rowSpan, 24);
+	assert.equal(profile().widgets[0].rowSpan, 18);
+	assert.equal(profile().widgets[0].column, 1);
+	assert.equal(profile().widgets[0].columnSpan, 8);
+});
+
+test('recorded range explains the dates covered by token totals',()=>{
+ const data=analytics([entry('first'),entry('second','messages',usage,{at:'2025-03-02T10:00:00Z'})],{zone:'UTC',now:'2026-10-15T12:00:00Z'});
+ assert.deepEqual(data.period,{first:'2025-03-02',last:'2026-10-14'});
+ assert.deepEqual(analytics([],{zone:'UTC',now:'2026-10-15T12:00:00Z'}).period,{first:null,last:null});
 });

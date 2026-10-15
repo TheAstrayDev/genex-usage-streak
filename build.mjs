@@ -68,6 +68,7 @@ for (const name of [...packages].sort()) {
 		} catch {}
 	notices += "\n\n";
 }
+notices += "Genex panel bridge and color math (MIT)\n" + await readFile(path.join(root,"vendor/LICENSE.genex"),"utf8") + "\n\n";
 await writeFile(path.join(out, "THIRD_PARTY_NOTICES.txt"), notices.replace(/\r\n/g, "\n").trimEnd() + "\n");
 const version = JSON.parse(await readFile(path.join(root, "package.json"), "utf8")).version;
 const manifest = {
