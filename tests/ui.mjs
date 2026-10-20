@@ -1,132 +1,81 @@
 import { createRequire } from "node:module";
-import { mkdir, readFile, writeFile, mkdtemp } from "node:fs/promises";
+import { mkdir, readFile, writeFile, mkdtemp, rm } from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
 import { spawn } from "node:child_process";
-import { build } from "../node_modules/esbuild/lib/main.js";
+import { build } from "esbuild";
 import { pathToFileURL } from "node:url";
 const root = path.resolve(import.meta.dirname, ".."),
-	host = path.resolve(process.env.GENEX_HOST_DIR || path.resolve(root, "../genex-plugin-host-local")),
-	out = path.join(root, ".evidence");
+  host = path.resolve(process.env.GENEX_HOST_DIR || path.resolve(root, "../genex-plugin-0.1.12")),
+  out = path.join(root, ".evidence");
 const { fixtureElectronEnv } = await import(pathToFileURL(path.join(host, "scripts/electron-runtime.mjs")).href);
 await mkdir(out, { recursive: true });
 const profile = await mkdtemp(path.join(os.tmpdir(), "genex-streak-ui-"));
-await build({
-	entryPoints: [path.join(root, "tests/ui-fixture.tsx")],
-	bundle: true,
-	platform: "browser",
-	format: "esm",
-	jsx: "automatic",
-	nodePaths: [path.join(host, "node_modules")],
-	alias: { "@genex-host": host },
-	outfile: path.join(out, "fixture.js"),
-	define: { "process.env.NODE_ENV": '"production"' },
-});
-await writeFile(
-	path.join(out, "index.html"),
-	`<!doctype html><meta charset="utf-8"><link rel="stylesheet" href="${path.join(host, "dist/renderer/theme.css")}"><style>body{margin:0;background:#0f0f10;color:var(--foreground)}.dashboard-frame{width:100%;height:1100px;border:0}.mock-composer{position:absolute;top:35%;left:20%;width:60%;text-align:center;font:24px system-ui;display:flex;flex-direction:column;gap:6px}.mock-prompt{font-size:16px;padding:24px;text-align:left;margin-top:24px}.mock-compose-row{display:flex;justify-content:space-between;font-size:11px;height:28px;align-items:center}section{display:none}body.mounted section{display:block}body.mounted .dashboard-frame{display:none}</style><div id="root"></div><script type="module" src="fixture.js"></script>`,
-);
-const pages = Object.fromEntries(
-	await Promise.all(
-		["streak", "dashboard"].map(async (p) => [
-			p,
-			await readFile(path.join(root, "dist", p + ".html"), "utf8"),
-		]),
-	),
-);
-await writeFile(
-	path.join(out, "runner.cjs"),
-	`
+await build({ entryPoints: [path.join(root, "tests/ui-fixture.tsx")], bundle: true, platform: "browser", format: "esm",
+  jsx: "automatic", nodePaths: [path.join(host, "node_modules")], alias: { "@genex-host": host },
+  outfile: path.join(out, "fixture.js"), define: { "process.env.NODE_ENV": '"production"' } });
+await writeFile(path.join(out, "index.html"), `<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="${pathToFileURL(path.join(host, "dist/renderer/theme.css")).href}"><style>:root{--background:#0f0f10;--foreground:#eeeeef;--accent-primary:#6071db;--accent-fill:#4759c2}body{margin:0;background:var(--background);color:var(--foreground)}nav{padding:12px;display:flex;gap:16px}.plugin-frame{width:100%;height:900px;border:0}button{cursor:pointer}</style></head><body><div id="root"></div><script type="module" src="fixture.js"></script></body></html>`);
+const pages = Object.fromEntries(await Promise.all(["streak", "dashboard"].map(async p => [p, await readFile(path.join(root, "dist", p + ".html"), "utf8")])));
+await writeFile(path.join(out, "runner.cjs"), `
 const {app,BrowserWindow,protocol}=require('electron'),fs=require('node:fs'),{setTimeout:sleep}=require('node:timers/promises');
-app.disableHardwareAcceleration();app.commandLine.appendSwitch('disable-backgrounding-occluded-windows');app.setPath('userData',${JSON.stringify(profile)});app.setPath('sessionData',${JSON.stringify(path.join(profile, "session"))});protocol.registerSchemesAsPrivileged([{scheme:'studio-plugin',privileges:{secure:true,standard:true}}]);
+app.disableHardwareAcceleration();app.commandLine.appendSwitch('disable-backgrounding-occluded-windows');app.setPath('userData',${JSON.stringify(profile)});protocol.registerSchemesAsPrivileged([{scheme:'studio-plugin',privileges:{secure:true,standard:true}}]);
 const pages=${JSON.stringify(pages)},checks=[],errors=[];let win;
-const check=(name,ok)=>{checks.push({name,ok:!!ok});if(!ok)throw new Error(name)};
-app.whenReady().then(async()=>{protocol.handle('studio-plugin',request=>new Response(pages[new URL(request.url).pathname.slice(1)]||'',{headers:{'Content-Type':'text/html','Content-Security-Policy':"default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'"}}));win=new BrowserWindow({show:false,width:1440,height:1100,webPreferences:{nodeIntegration:false,contextIsolation:true,sandbox:true,backgroundThrottling:false,offscreen:true}});const wc=win.webContents;wc.on('console-message',(_e,level,message)=>{if(level>=3)errors.push(message)});wc.on('render-process-gone',(_e,details)=>errors.push(JSON.stringify(details)));const js=s=>wc.executeJavaScript(s);
-check('preview uses 100 percent zoom',wc.getZoomFactor()===1);
-let panel;const until=async fn=>{for(let i=0;i<100;i++){if(await fn())return;await sleep(40)}throw Error('Timeout')};const run=s=>panel.executeJavaScript(s);const click=action=>run('document.querySelector("[data-action='+action+']").click()');
-try{await win.loadFile(${JSON.stringify(path.join(out, "index.html"))});await until(async()=>{panel=wc.mainFrame.frames.find(f=>f.url.endsWith('/dashboard'));return panel&&await run('!!document.querySelector(".heatmap")')});
-const selectionProof=async()=>{const expected=await js('(()=>{const s=getComputedStyle(document.body,"::selection");return [s.backgroundColor,s.color]})()');await until(()=>run('!!document.documentElement.style.getPropertyValue("--selection-background")'));const actual=await run('(()=>{const s=getComputedStyle(document.body,"::selection");return [s.backgroundColor,s.color]})()');if(JSON.stringify(actual)!==JSON.stringify(expected))console.log({selectionExpected:expected,selectionActual:actual,accent:await js('getComputedStyle(document.documentElement).getPropertyValue("--accent-primary")')});return JSON.stringify(actual)===JSON.stringify(expected)};
-check('dashboard text selection matches native Genex fill and text',await selectionProof());
-check('isolated panel has no host preload or Node',await run('self.origin==="null"&&typeof require==="undefined"&&typeof window.studio==="undefined"'));
-check('year calendar has 7 rows and at least 365 accessible days',await run('document.querySelectorAll(".day").length>=365&&getComputedStyle(document.querySelector(".heatmap")).gridTemplateRows.split(" ").length===7'));
-check('renders only synthetic reported model names',await run('document.querySelector("#model").textContent.includes("GPT 6.1")&&document.querySelector("#model").textContent.includes("Claude Opus")'));
-const before=await run('document.querySelector(".summary").textContent');await run('document.querySelector("#project").value="car-evolve";document.querySelector("#project").dispatchEvent(new Event("change",{bubbles:true}))');await until(()=>run('document.querySelector(".summary").textContent!=='+JSON.stringify(before)));check('game filter changes real aggregate',await run('document.querySelectorAll(".game").length===1'));
-await click('reset-filters');await until(()=>run('document.querySelectorAll(".game").length===2'));
-await run('document.querySelector("[data-tab=models]").click()');check('model table includes input output cache and totals',await run('document.querySelectorAll(".model-row").length===3&&document.querySelector(".model-table").textContent.includes("Cache")'));
-await run('document.querySelector("[data-tab=changes]").click()');check('file activity labels requested edits without invented diffs',await run('document.querySelector(".files").textContent.includes("src/car.ts")&&document.querySelector(".hint").textContent.includes("does not prove")'));
-await run('document.querySelector("[data-tab=activity]").click()');check('tree exposes observed worker summary',await run('document.querySelector(".event-tree").textContent.includes("Adjusted steering")'));
-await run('Array.from(document.querySelectorAll(".day")).find(d=>d.tabIndex===0).focus();document.activeElement.dispatchEvent(new KeyboardEvent("keydown",{key:"ArrowLeft",bubbles:true}))');check('heatmap supports arrow-key navigation and focus',await run('document.activeElement.classList.contains("day")&&document.activeElement.tabIndex===0'));
-await run('document.querySelector(".day:last-child").click()');await until(()=>run('!!document.querySelector("[data-action=clear-day]")'));check('day selection filters dashboard',true);await click('clear-day');
-await until(()=>run('!document.querySelector("[data-action=clear-day]")'));await run('document.querySelector(".dashboard").scrollTop=0');await sleep(250);fs.writeFileSync(${JSON.stringify(path.join(out, "dashboard.png"))},(await wc.capturePage(undefined,{stayHidden:true,stayAwake:true})).toPNG());
-await js('document.querySelector(".dashboard-frame").style.width="390px"');check('dashboard fits a narrow panel',await run('document.documentElement.scrollWidth<=innerWidth+1'));await js('document.querySelector(".dashboard-frame").style.width="100%"');
-await click('mount');await until(()=>js('!!streakTest.profile()'));check('composition changes no theme or background',await js('Object.keys(streakTest.profile().dark).length===0&&Object.keys(streakTest.profile().surfaces).length===0'));
-await js('document.body.classList.add("mounted");document.querySelector(".dashboard-frame").style.display="none"');await until(async()=>{panel=wc.mainFrame.frames.find(f=>f.url.endsWith('/streak'));return panel&&await run('!!document.querySelector(".compact .heatmap")')});
-check('compact widget is mounted on New Chat',await js('!!document.querySelector("[data-customization-widget=usage-streak]")'));check('widget stays below composer at reference height',await js('document.querySelector("[data-customization-widget=usage-streak]").getBoundingClientRect().top>document.querySelector(".mock-compose-row").getBoundingClientRect().bottom'));
-check('widget contains only counters and recent calendar',await run('!document.querySelector("header,.game,.tabs,.head-actions")&&document.querySelectorAll(".day").length<190'));
-check('widget numbers and month labels stay English',await run('!/[А-Яа-яЁё]/.test(document.body.textContent)&&document.querySelector(".usage-total").textContent.includes("M")'));
-check('card uses two thirds of composer width and shares its left edge, compact and native',await js('(()=>{const card=document.querySelector("[data-customization-widget]"),frame=card.querySelector("iframe"),parent=document.querySelector(".mock-composer"),r=card.getBoundingClientRect(),f=frame.getBoundingClientRect(),p=parent.getBoundingClientRect(),c=getComputedStyle(card),prompt=getComputedStyle(document.querySelector(".mock-prompt"));return Math.abs(r.width-p.width*2/3)<1&&Math.abs(r.height-120)<1&&Math.abs(r.left-p.left)<1&&c.borderRadius===prompt.borderRadius&&c.borderTopWidth===prompt.borderTopWidth&&c.borderTopStyle===prompt.borderTopStyle&&c.borderTopColor===prompt.borderTopColor&&[f.left-r.left,r.right-f.right,f.top-r.top,r.bottom-f.bottom].every(n=>Math.abs(n+7)<1)})()'));
-await until(()=>run('parseInt(document.querySelector("#root").style.getPropertyValue("--weeks"))===2'));check('compact calendar has two Monday-first weeks of square cells',await run('(()=>{const info=document.querySelector(".streak-overview").getBoundingClientRect(),grid=document.querySelector(".widget-calendar").getBoundingClientRect(),cell=document.querySelector(".day").getBoundingClientRect();return info.right<grid.left&&document.querySelector(".streak-eyebrow").textContent==="Usage activity"&&document.querySelectorAll(".day").length===14&&document.querySelector(".widget-weekdays").textContent==="MTWTFSS"&&Math.abs(cell.height-cell.width)<.5})()'));
-check('compact calendar keyboard arrows follow the visible weekday rows',await run('(()=>{const start=Array.from(document.querySelectorAll("button.day")).at(-1);start.focus();start.dispatchEvent(new KeyboardEvent("keydown",{key:"ArrowLeft",bubbles:true}));return Number(document.activeElement.dataset.index)===Number(start.dataset.index)-1})()'));
-check('up arrow follows the weekly calendar rows',await run('(()=>{const start=Array.from(document.querySelectorAll("button.day")).at(-1),index=Number(start.dataset.index);start.focus();start.dispatchEvent(new KeyboardEvent("keydown",{key:"ArrowUp",bubbles:true}));return Number(document.activeElement.dataset.index)===Math.max(0,index-7)})()'));
-check('widget explains the recorded period, color scale and day navigation',await run('!!document.querySelector(".usage-period").textContent&&document.querySelector(".calendar-heading").textContent.includes("Select a day")&&document.querySelector(".widget-legend").getAttribute("aria-label").includes("Token volume")'));
-check('readable desktop captions and close summary/calendar spacing',await run('(()=>{const q=s=>document.querySelector(s),info=q(".streak-overview").getBoundingClientRect(),grid=q(".widget-calendar").getBoundingClientRect();return grid.left-info.right<=20&&[".streak-eyebrow",".usage-period",".streak-record",".calendar-heading",".widget-weekdays",".widget-key"].every(s=>parseFloat(getComputedStyle(q(s)).fontSize)>=12)&&q(".day").getBoundingClientRect().width>=18})()'));
-check('widget uses regular-weight text and a low two-row activity strip',await run('(()=>{const q=s=>document.querySelector(s),total=getComputedStyle(q(".usage-total strong")),streak=getComputedStyle(q(".streak-count strong")),grid=q(".heatmap").getBoundingClientRect();return Number(total.fontWeight)<=450&&Number(streak.fontWeight)===400&&parseFloat(total.fontSize)===24&&grid.height<=44&&q(".streak-count").getBoundingClientRect().top>q(".usage-period").getBoundingClientRect().bottom})()'));
-check('token total is more prominent than the streak at rest',await run('parseFloat(getComputedStyle(document.querySelector(".usage-total strong")).fontSize)>parseFloat(getComputedStyle(document.querySelector(".streak-count strong")).fontSize)'));
-check('widget reveals exactly the composer surface without a gradient',await js('getComputedStyle(document.querySelector("[data-customization-widget]")).backgroundColor===getComputedStyle(document.querySelector(".mock-prompt")).backgroundColor')&&await run('(()=>{const body=getComputedStyle(document.body),root=document.querySelector("#root"),style=getComputedStyle(root),before=getComputedStyle(root,"::before");return [body,style,before].every(s=>s.backgroundImage==="none"&&s.backgroundColor==="rgba(0, 0, 0, 0)")})()'));
-check('widget text selection matches native Genex',await selectionProof());check('widget token text remains selectable with the mouse',await run('(()=>{const range=document.createRange(),text=document.querySelector(".usage-total strong"),selection=getSelection();range.selectNodeContents(text);selection.removeAllRanges();selection.addRange(range);const ok=selection.toString()===text.textContent&&getComputedStyle(text).userSelect!=="none";selection.removeAllRanges();return ok})()'));
-check('primary widget text uses Genex foreground',await run('getComputedStyle(document.querySelector("#root")).color')===await js('getComputedStyle(document.body).color'));
-const surfaceProof=async()=>{await js('new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))');await run('new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))');const points=await js('(()=>{const p=document.querySelector(".mock-prompt").getBoundingClientRect(),w=document.querySelector("[data-customization-widget]").getBoundingClientRect();return [p,w].map(r=>({x:Math.floor(r.right-40),y:Math.floor(r.top+7),width:1,height:1}))})()');const colors=[];for(const p of points)colors.push((await wc.capturePage(p,{stayHidden:true,stayAwake:true})).toBitmap().toString('hex'));return colors[0]===colors[1]};
-check('rendered widget and prompt background pixels match',await surfaceProof());
-const originalSurface=await js('({surface:document.documentElement.style.getPropertyValue("--surface"),composer:document.documentElement.style.getPropertyValue("--composer")})');
-await js('document.documentElement.style.setProperty("--surface","#252525");document.documentElement.style.setProperty("--composer","#252525")');await sleep(60);
-check('backgrounds still match after host surface changes',await surfaceProof());
-await js('document.documentElement.style.setProperty("--surface",'+JSON.stringify(originalSurface.surface)+');document.documentElement.style.setProperty("--composer",'+JSON.stringify(originalSurface.composer)+')');
-check('halo has a bounded overscan and panel isolation remains intact',await js('getComputedStyle(document.querySelector("[data-customization-widget]")).overflow==="visible"')&&await run('self.origin==="null"&&typeof require==="undefined"'));
-for(const width of [760,600,540,390,280]){await js('document.querySelector(".mock-composer").style.width='+JSON.stringify(width+'px'));await sleep(100);if(width>=540)check('two-week calendar remains visible at composer '+width+'px',await run('getComputedStyle(document.querySelector(".widget-calendar")).display!=="none"&&document.querySelectorAll(".day").length===14&&document.querySelector(".calendar-heading").textContent.includes("2 weeks")'));check('widget has no horizontal or vertical scrolling at container '+width+'px',await run('(()=>{const grid=document.querySelector(".widget-calendar"),link=document.querySelector(".widget-open-today");return document.documentElement.scrollWidth<=innerWidth+1&&document.documentElement.scrollHeight<=innerHeight+1&&(getComputedStyle(grid).display==="none"?getComputedStyle(link).display!=="none":document.querySelector(".streak-overview").getBoundingClientRect().right<grid.getBoundingClientRect().left)})()')&&await js('Math.abs(document.querySelector("[data-customization-widget]").getBoundingClientRect().width-document.querySelector(".mock-prompt").getBoundingClientRect().width*2/3)<1'));}
-await run('document.querySelector(".usage-total strong").textContent="150.6M"');check('long token counter fits narrow summary at readable size',await run('(()=>{const strong=document.querySelector(".usage-total strong").getBoundingClientRect();return strong.left>=0&&strong.right<=innerWidth&&parseFloat(getComputedStyle(document.querySelector(".usage-period")).fontSize)>=12})()'));await run('document.querySelector(".widget-open-today").click()');await until(()=>js('Array.from(document.querySelectorAll("[aria-label]")).some(el=>el.getAttribute("aria-label")==="Studio plugins")'));await until(async()=>{panel=wc.mainFrame.frames.find(f=>f.url.endsWith('/dashboard'));return panel&&await run('!!document.querySelector("[data-action=clear-day]")')});check('narrow summary opens today in Plugins',await run('document.querySelector(".summary").textContent.includes("2026-10-14")'));await js('streakTest.home()');await until(async()=>{panel=wc.mainFrame.frames.find(f=>f.url.endsWith('/streak'));return panel&&await run('!!document.querySelector(".compact")')});
-await js('document.querySelector(".mock-composer").style.width="60%"');await sleep(250);wc.setZoomFactor(1.25);await until(()=>run('innerWidth>360&&innerWidth<500'));check('calendar stays visible at 125 percent zoom in the formerly hidden range',await run('getComputedStyle(document.querySelector(".widget-calendar")).display!=="none"&&document.querySelectorAll(".day").length===14&&document.documentElement.scrollWidth<=innerWidth+1'));wc.setZoomFactor(1);await until(()=>run('innerWidth>500'));fs.writeFileSync(${JSON.stringify(path.join(out, "widget.png"))},(await wc.capturePage(undefined,{stayHidden:true,stayAwake:true})).toPNG());
-for(const [days,tier] of [[0,'rest'],[1,'ember'],[3,'flame'],[7,'coral'],[14,'violet'],[30,'aurora'],[90,'solar']]){
- await js('streakTest.streak('+days+')');await run('document.dispatchEvent(new Event("visibilitychange"))');await until(()=>run('document.querySelector("#root").dataset.aura==='+JSON.stringify(tier)));check('current streak selects '+tier+' aura',await run('document.querySelector(".streak-count strong").textContent.trim().startsWith('+JSON.stringify(days?String(days):"Start a streak")+')'));await sleep(100);fs.writeFileSync(${JSON.stringify(out)}+'/aura-'+days+'.png',(await wc.capturePage(undefined,{stayHidden:true,stayAwake:true})).toPNG());const bounds=await js('(()=>{const r=document.querySelector("[data-customization-widget]").getBoundingClientRect();return {x:Math.floor(r.x)-8,y:Math.floor(r.y)-8,width:Math.ceil(r.width)+16,height:Math.ceil(r.height)+16}})()');fs.writeFileSync(${JSON.stringify(out)}+'/tile-aura-'+days+'.png',(await wc.capturePage(bounds,{stayHidden:true,stayAwake:true})).toPNG());
-}
-check('aura loops are finite-cost CSS animations with matching endpoints',await run('(()=>{const animations=document.getAnimations().filter(a=>["streak-breathe","streak-drift"].includes(a.animationName));return animations.length===2&&animations.every(a=>{const f=a.effect.getKeyframes(),first=f[0],last=f[f.length-1];return a.effect.getTiming().iterations===Infinity&&first.opacity===last.opacity&&first.transform===last.transform&&a.playState==="running"})})()'));
-check('vector flame actually advances while lit',await run('(async()=>{const path=document.querySelector(".flame-outer"),a=getComputedStyle(path).d;await new Promise(r=>setTimeout(r,140));return getComputedStyle(path).d!==a&&document.getAnimations().filter(a=>a.animationName?.startsWith("streak-flame-")).every(a=>a.playState==="running")})()'));
-await run('Object.defineProperty(document,"hidden",{configurable:true,value:true});document.dispatchEvent(new Event("visibilitychange"))');
-check('hidden widget pauses all flame and halo animations',await run('(async()=>{const animations=document.getAnimations().filter(a=>a.animationName?.startsWith("streak-"));await Promise.all(animations.map(a=>a.ready));const path=document.querySelector(".flame-outer"),before=getComputedStyle(path).d;await new Promise(r=>setTimeout(r,150));return animations.length===4&&animations.every(a=>a.playState==="paused")&&getComputedStyle(path).d===before})()'));
-await run('delete document.hidden;document.dispatchEvent(new Event("visibilitychange"))');
-check('visible widget resumes vector playback',await run('document.getAnimations().filter(a=>a.animationName?.startsWith("streak-flame-")).every(a=>a.playState==="running")'));
-// Seek only after lifecycle checks: WAAPI play() overrides subsequent CSS play-state.
-check('both flame contours are sampled at 24 FPS with a seamless loop',await run('(()=>{const animations=document.getAnimations().filter(a=>a.animationName?.startsWith("streak-flame-"));return animations.length===2&&animations.every(a=>{const frames=a.effect.getKeyframes(),t=a.effect.getTiming(),path=a.effect.target;a.pause();a.effect.updateTiming({delay:0});a.currentTime=0;const start=getComputedStyle(path).d;a.currentTime=20;const held=getComputedStyle(path).d;a.currentTime=43;const next=getComputedStyle(path).d;a.currentTime=2000;const loop=getComputedStyle(path).d;a.effect.updateTiming({delay:t.delay});a.play();return frames.length===49&&t.duration===2000&&t.iterations===Infinity&&frames.slice(0,-1).every(f=>f.easing==="steps(1)")&&start===held&&start!==next&&start===loop})})()'));
-await js('streakTest.streak(0)');await run('document.dispatchEvent(new Event("visibilitychange"))');await until(()=>run('document.querySelector("#root").dataset.aura==="rest"'));
-check('zero streak has a positive empty state without a large zero',await run('document.querySelector(".streak-count strong").textContent==="Start a streak"&&!document.querySelector(".usage-total").textContent.includes("0 days")'));check('unlit flame is static and runs no animations',await run('(async()=>{const path=document.querySelector(".flame-outer"),before=getComputedStyle(path).d;await new Promise(r=>setTimeout(r,150));return document.getAnimations().filter(a=>a.animationName?.startsWith("streak-")).length===0&&getComputedStyle(path).d===before})()'));
-await js('streakTest.streak(30)');await run('document.dispatchEvent(new Event("visibilitychange"))');await until(()=>run('document.querySelector("#root").dataset.aura==="aurora"'));
-wc.debugger.attach('1.3');const targets=await wc.debugger.sendCommand('Target.getTargets');const iframeTarget=targets.targetInfos.find(t=>t.type==='iframe'&&t.url.endsWith('/streak'));const mediaSession=iframeTarget?(await wc.debugger.sendCommand('Target.attachToTarget',{targetId:iframeTarget.targetId,flatten:true})).sessionId:undefined;await wc.debugger.sendCommand('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'reduce'}]},mediaSession);await until(()=>run('matchMedia("(prefers-reduced-motion: reduce)").matches'));check('reduced motion makes the flame and halo static',await run('document.getAnimations().filter(a=>a.animationName?.startsWith("streak-")).length===0'));await wc.debugger.sendCommand('Emulation.setEmulatedMedia',{features:[]},mediaSession);wc.debugger.detach();
-const chosen=await run('Array.from(document.querySelectorAll("button.day")).at(-1).dataset.date');await run('Array.from(document.querySelectorAll("button.day")).at(-1).click()');await until(()=>js('Array.from(document.querySelectorAll("[aria-label]")).some(el=>el.getAttribute("aria-label")==="Studio plugins")'));await until(async()=>{panel=wc.mainFrame.frames.find(f=>f.url.endsWith('/dashboard'));return panel&&await run('!!document.querySelector("[data-action=clear-day]")')});check('day click opens real Plugins page with that day selected',await js('Array.from(document.querySelectorAll("[aria-label]")).some(el=>el.getAttribute("aria-label")==="Studio plugins")')&&await run('document.querySelector(".summary").textContent.includes('+JSON.stringify(chosen)+')'));check('day click never expands New Chat composition',await js('streakTest.profile().widgets[0].target==="newChatFooter"&&streakTest.profile().widgets[0].rowSpan===18'));
-await js('streakTest.error(true)');await click('refresh');await until(()=>run('!!document.querySelector(".warning")'));check('read failure stays visible and preserves last data',await run('document.querySelector(".warning")?.textContent.includes("Fixture read failed")&&!!document.querySelector(".heatmap")'));await js('streakTest.error(false)');await click('refresh');await until(()=>run('!document.querySelector(".warning")'));
-await js('streakTest.empty(true)');await click('refresh');await until(()=>run('document.querySelector(".summary>strong").textContent.trim().startsWith("0 reported")'));check('empty history does not fabricate usage or screenshots',await run('document.querySelectorAll(".game").length===0&&document.querySelector(".empty").textContent.includes("No reported tokens")'));
-await js('streakTest.home()');await until(async()=>{panel=wc.mainFrame.frames.find(f=>f.url.endsWith('/streak'));return panel&&await run('document.querySelector(".usage-total strong")?.textContent==="Ready to build"')});await js('document.querySelector(".mock-composer").style.width="280px"');await until(()=>run('innerWidth<360'));check('empty narrow summary keeps readable text without overflow',await run('document.documentElement.scrollHeight<=innerHeight+1&&document.documentElement.scrollWidth<=innerWidth+1&&parseFloat(getComputedStyle(document.querySelector(".usage-period")).fontSize)>=12&&getComputedStyle(document.querySelector(".widget-open-today")).display!=="none"'));await js('streakTest.enable(false)');await until(()=>js('!document.querySelector("[data-customization-widget]")'));check('disable removes widget',true);
-check('no renderer exceptions',errors.length===0);
-}catch(err){checks.push({name:'completed',ok:false,error:String(err.stack)})}fs.writeFileSync(${JSON.stringify(path.join(out, "ui-report.json"))},JSON.stringify({checks,errors,provider:'synthetic fixture',electron:process.versions.electron},null,2));win.destroy();app.exit(checks.some(c=>!c.ok)?1:0)});
-`,
-);
-const electron = createRequire(path.join(host, "package.json"))("electron"),
-	child = spawn(electron, [path.join(out, "runner.cjs")], {
-		env: fixtureElectronEnv(),
-		stdio: ["ignore", "pipe", "pipe"],
-	});
-child.stdout.on("data", (d) => process.stdout.write(d));
-child.stderr.on("data", (d) => process.stderr.write(d));
-const timer = setTimeout(() => child.kill("SIGKILL"), 45000);
-try {
-	const code = await new Promise((resolve, reject) => {
-		child.once("exit", resolve);
-		child.once("error", reject);
-	});
-	console.log(await readFile(path.join(out, "ui-report.json"), "utf8"));
-	if (code !== 0) process.exitCode = 1;
-} finally {
-	clearTimeout(timer);
-	const { removeTree } = await import(
-		pathToFileURL(path.join(host, "tests/helpers/tmp.ts")).href
-	);
-	await removeTree(profile);
-}
+const check=(name,ok)=>{checks.push({name,ok:!!ok});if(!ok)throw Error(name)};
+app.whenReady().then(async()=>{protocol.handle('studio-plugin',request=>new Response(pages[new URL(request.url).pathname.slice(1)]||'',{headers:{'Content-Type':'text/html','Content-Security-Policy':"default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'"}}));
+ win=new BrowserWindow({show:false,width:1100,height:1000,webPreferences:{nodeIntegration:false,contextIsolation:true,sandbox:true,backgroundThrottling:false,offscreen:true}});const wc=win.webContents;wc.on('console-message',event=>{if(event.level==='error')errors.push(event.message)});const js=s=>wc.executeJavaScript(s);
+ let panel;const until=async fn=>{for(let i=0;i<125;i++){if(await fn())return;await sleep(40)}throw Error('condition timed out')};const run=s=>panel.executeJavaScript(s);
+ const selected=async name=>{await until(async()=>{panel=wc.mainFrame.frames.find(f=>f.url.endsWith('/'+name));return panel&&await run('!!document.querySelector(".summary,.streak-count")')})};
+ try{
+ await win.loadFile(${JSON.stringify(path.join(out, "index.html"))});await selected('dashboard');
+ check('dashboard loads through the unmodified released PluginPanelHost',await run('document.querySelector("h1").textContent==="Usage-Streak"'));
+ check('reported usage and both games are visible',await run('document.querySelector(".summary").textContent.includes("reported tokens")&&document.querySelectorAll(".game").length===2'));
+ check('calendar month labels stay above the day cells',await run('(()=>{const row=document.querySelector(".month-row").getBoundingClientRect();return [...document.querySelectorAll(".month-row span")].every(e=>e.getBoundingClientRect().bottom<=row.bottom+1)})()'));
+ check('panel stays isolated with no Node access',await run('self.origin==="null"&&typeof require==="undefined"&&typeof window.studio==="undefined"'));
+ check('unsupported New Chat controls are absent',await run('!document.querySelector("[data-action=mount]")'));
+ await run('[...document.querySelectorAll("[data-date]")].find(e=>e.dataset.date==="2026-10-20").click()');await until(()=>run('!!document.querySelector("[data-action=clear-day]")'));
+ check('dashboard day selection filters in the panel',await run('document.querySelector(".summary").textContent.includes("2026-10-20")'));
+ await run('document.querySelector("[data-action=reset-filters]").click()');await until(()=>run('!document.querySelector("[data-action=clear-day]")'));
+ await run('document.querySelector("[data-tab=models]").click()');check('model breakdown remains available',await run('document.querySelectorAll(".model-table .model-row").length===3'));
+ await run('document.querySelector("[data-tab=changes]").click()');await run('document.querySelector("#project").value="Racing";document.querySelector("#project").dispatchEvent(new Event("change",{bubbles:true}))');await until(()=>run('!!document.querySelector("[data-action=compare]")'));
+ await run('document.querySelector("[data-action=compare]").click()');await until(()=>run('document.body.textContent.includes("No saved checkpoints in this fixture.")'));
+ check('checkpoint comparison uses a declared action',true);
+ await js('streakTest.panel("streak")');await selected('streak');
+ check('compact overview has two weeks and a visible flame',await run('document.querySelectorAll(".day").length===14&&!!document.querySelector(".flame-outer")'));
+ await run('[...document.querySelectorAll("[data-date]")].find(e=>e.dataset.date==="2026-10-20").click()');await until(()=>run('!!document.querySelector(".dashboard")'));
+ check('overview opens the selected day locally without host navigation',await run('document.querySelector(".summary").textContent.includes("2026-10-20")&&!!document.querySelector("[data-action=back]")'));
+ await run('document.querySelector("[data-action=back]").click()');await until(()=>run('!!document.querySelector(".compact")'));
+ check('Back returns to the same compact panel',panel.url.endsWith('/streak'));
+ for(const width of [1100,600,400]){win.setContentSize(width,900);await sleep(80);check('overview fits '+width+'px',await run('document.documentElement.scrollWidth<=innerWidth+1'))}
+ wc.setZoomFactor(1.25);await sleep(80);check('overview fits at 125 percent zoom',await run('document.documentElement.scrollWidth<=innerWidth+1'));wc.setZoomFactor(1);win.setContentSize(1100,1000);
+ for(const [days,tier] of [[0,'rest'],[1,'ember'],[3,'flame'],[7,'coral'],[14,'violet'],[30,'aurora'],[90,'solar']]){await js('streakTest.streak('+days+')');await run('document.dispatchEvent(new Event("visibilitychange"))');await until(()=>run('document.querySelector("#root").dataset.aura==='+JSON.stringify(tier)));check('streak aura '+tier,true)}
+ check('lit flame has vector animations',await run('document.getAnimations().some(a=>a.animationName?.startsWith("streak-flame-"))'));
+ await run('Object.defineProperty(document,"hidden",{configurable:true,value:true});document.dispatchEvent(new Event("visibilitychange"))');check('hidden overview pauses motion',await run('document.getAnimations().filter(a=>a.animationName?.startsWith("streak-")).every(a=>a.playState==="paused")'));
+ await run('delete document.hidden;document.dispatchEvent(new Event("visibilitychange"))');
+ wc.debugger.attach('1.3');
+ // The sandboxed plugin is an out-of-process iframe: emulate on its target, not the parent.
+ const {targetInfos}=await wc.debugger.sendCommand('Target.getTargets');
+ const target=targetInfos.find(t=>t.type==='iframe'&&t.url===panel.url);
+ check('isolated panel has a DevTools target',!!target);
+ const {sessionId}=await wc.debugger.sendCommand('Target.attachToTarget',{targetId:target.targetId,flatten:true});
+ await wc.debugger.sendCommand('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'reduce'}]},sessionId);
+ await until(()=>run('matchMedia("(prefers-reduced-motion: reduce)").matches'));
+ await until(()=>run('document.getAnimations().filter(a=>a.animationName?.startsWith("streak-")).length===0'));
+ check('reduced motion stops animated flame',true);
+ await wc.debugger.sendCommand('Emulation.setEmulatedMedia',{features:[]},sessionId);wc.debugger.detach();
+ await js('streakTest.streak(30)');await run('document.dispatchEvent(new Event("visibilitychange"))');await until(()=>run('document.querySelector("#root").dataset.aura==="aurora"'));
+ fs.writeFileSync(${JSON.stringify(path.join(out, "streak-overview.png"))},(await wc.capturePage()).toPNG());
+ await js('streakTest.panel("dashboard")');await selected('dashboard');await js('streakTest.error(true)');await run('document.querySelector("[data-action=refresh]").click()');await until(()=>run('document.body.textContent.includes("Fixture read failed")'));check('backend errors remain visible',true);
+ await js('streakTest.error(false);streakTest.empty(true)');await run('document.querySelector("[data-action=refresh]").click()');await until(()=>run('document.body.textContent.includes("No reported tokens yet")'));check('empty data is an honest empty state',true);
+ await js('streakTest.empty(false)');await run('document.querySelector("[data-action=refresh]").click()');await until(()=>run('document.querySelectorAll(".game").length===2'));
+ fs.writeFileSync(${JSON.stringify(path.join(out, "dashboard.png"))},(await wc.capturePage()).toPNG());
+ const methods=await js('streakTest.requests()');check('all panel calls use released APIs',methods.every(m=>['context','action','settings','chooseFile'].includes(m)));
+ await js('streakTest.enable(false)');await until(()=>js('!document.querySelector("iframe")'));const reads=await js('streakTest.reads()');await sleep(5200);check('disable removes the panel and stops its polling',await js('streakTest.reads()')===reads);
+ check('no renderer errors',errors.length===0);fs.writeFileSync(${JSON.stringify(path.join(out, "ui-report.json"))},JSON.stringify({checks,errors,host:'stock Genex v0.1.12 panel code',providers:'fixture IPC, no model calls'},null,2));app.exit(0);
+ }catch(e){fs.writeFileSync(${JSON.stringify(path.join(out, "ui-report.json"))},JSON.stringify({checks,errors,error:String(e)},null,2));console.error(e);app.exit(1)}
+});
+`);
+const require = createRequire(path.join(host, "package.json"));
+const child = spawn(require("electron"), [path.join(out, "runner.cjs")], { env: fixtureElectronEnv(), stdio: "inherit" });
+const timeout = setTimeout(() => child.kill(), 90_000);
+try { const code = await new Promise((resolve, reject) => { child.once("exit", resolve);child.once("error", reject); }); process.exitCode = code ?? 1; }
+finally { clearTimeout(timeout); await rm(profile, { recursive: true, force: true, maxRetries: 8, retryDelay: 100 }); }

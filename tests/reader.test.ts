@@ -110,7 +110,7 @@ test("default profile derives from standard storage root and rejects unknown lay
 	const root = path.resolve(os.tmpdir(), "Genex");
 	assert.equal(
 		profileRoot(
-			path.join(root, "engine-homes/plugins/data/usage-streak"),
+			path.join(root, "engine-homes/plugins/data/theastraydev-usage-streak"),
 		),
 		root,
 	);

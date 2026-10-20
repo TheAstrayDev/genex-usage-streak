@@ -1,7 +1,7 @@
 import { selectionFill } from "./selection.ts";
 import { flameIcon } from "./flame.ts";
 import { streakAura, widgetDays } from "./widget.ts";
-import { profile, total, object, type Counts } from "./model.ts";
+import { total, object, type Counts } from "./model.ts";
 declare const __EMBEDDED__: boolean;
 declare global {
 	interface Window {
@@ -19,7 +19,7 @@ declare global {
 const api = window.studioPlugin,
 	root = document.querySelector<HTMLElement>("#root")!,
 	embedded = __EMBEDDED__;
-const expanded = !embedded;
+let expanded = !embedded;
 let data: any = null,
 	error = "",
 	busy = false,
@@ -72,7 +72,9 @@ function calendarHTML(compact = false) {
 				timeZone: "UTC",
 			});
 		if (month !== last) {
-			months += `<span style="grid-column:${Math.floor(i / 7) + 1}/span ${Math.min(3, weeks - Math.floor(i / 7))}">${e(month)}</span>`;
+			// Omit a short leading fragment so adjacent month names do not overlap.
+			if (i > 0 || days[Math.min(14, days.length - 1)].date.slice(0, 7) === days[i].date.slice(0, 7))
+				months += `<span style="grid-column:${Math.floor(i / 7) + 1}/span ${Math.min(3, weeks - Math.floor(i / 7))}">${e(month)}</span>`;
 			last = month;
 		}
 	}
@@ -172,6 +174,7 @@ async function compare() {
 	}
 }
 function render() {
+	document.body.classList.toggle("widget-page", !expanded);
 	const focus =
 		document.activeElement instanceof HTMLElement
 			? document.activeElement.dataset.date
@@ -185,12 +188,12 @@ function render() {
 		return;
 	}
 	const sum = total(data.counts);
-	if (embedded) {
+	if (!expanded) {
 		root.innerHTML = widgetHTML(sum);
 		if (error) root.setAttribute("aria-label", error); else root.removeAttribute("aria-label");
 		return;
 	}
-	root.innerHTML = `<header class="top"><div><h1>${expanded ? "Usage-Streak" : button("expand", 'Usage-Streak <span aria-hidden="true">↗</span>', "title-button")}</h1>${expanded ? "<p>Your games, measured in tokens.</p>" : ""}</div><div class="head-actions">${expanded ? button("live", live ? "● Live" : "Paused", "quiet") + button("refresh", "Refresh", "quiet") + (embedded ? button("collapse", "Close", "quiet") : button("mount", "Show on New Chat", "quiet")) : ""}</div></header>${expanded ? filtersHTML() : ""}<div class="summary"><strong title="${exact(sum)}">${number(sum)} <span>reported tokens${selectedDay ? " · " + e(selectedDay) : ""}</span></strong><span class="streak">${data.streak.current} day streak <span class="muted">· Best ${data.streak.longest}</span></span></div>${calendarHTML()}${expanded ? `<div class="metrics"><div><span>Input</span><strong>${number(data.counts.input)}</strong></div><div><span>Output</span><strong>${number(data.counts.output)}</strong></div><div><span>Cache read / write</span><strong>${number(data.counts.read)} / ${number(data.counts.write)}</strong></div><div><span>Model calls</span><strong>${number(data.callCount)}</strong></div></div>${graphHTML()}<section class="games"><div class="section-head"><h2>Games</h2><span>Reported usage${selectedDay ? " on " + e(selectedDay) : ""}</span></div>${projectHTML() || '<p class="empty">No reported tokens yet. Build a game in Studio to start your streak.</p>'}</section>${detailsHTML()}<footer class="footer"><span>${exact(data.eventCount)} local events · Updated ${new Date(data.updatedAt).toLocaleTimeString("en-US")}</span><span>${e(zone)}</span></footer>` : `<div class="compact-games">${projectHTML(1) || '<span class="hint">Build a game in Studio to start your streak.</span>'}</div>`}${data.partial || data.warnings.length ? `<p class="warning" role="status">Some history or token fields are unavailable. Totals cover reported usage only.${expanded ? " " + data.warnings.map(e).join(" ") : ""}</p>` : ""}${error ? `<p class="warning" role="alert">${e(error)}</p>` : ""}`;
+	root.innerHTML = `<header class="top"><div><h1>${expanded ? "Usage-Streak" : button("expand", 'Usage-Streak <span aria-hidden="true">↗</span>', "title-button")}</h1>${expanded ? "<p>Your games, measured in tokens.</p>" : ""}</div><div class="head-actions">${expanded ? button("live", live ? "● Live" : "Paused", "quiet") + button("refresh", "Refresh", "quiet") + (embedded ? button("back", "Back to overview", "quiet") : "") : ""}</div></header>${expanded ? filtersHTML() : ""}<div class="summary"><strong title="${exact(sum)}">${number(sum)} <span>reported tokens${selectedDay ? " · " + e(selectedDay) : ""}</span></strong><span class="streak">${data.streak.current} day streak <span class="muted">· Best ${data.streak.longest}</span></span></div>${calendarHTML()}${expanded ? `<div class="metrics"><div><span>Input</span><strong>${number(data.counts.input)}</strong></div><div><span>Output</span><strong>${number(data.counts.output)}</strong></div><div><span>Cache read / write</span><strong>${number(data.counts.read)} / ${number(data.counts.write)}</strong></div><div><span>Model calls</span><strong>${number(data.callCount)}</strong></div></div>${graphHTML()}<section class="games"><div class="section-head"><h2>Games</h2><span>Reported usage${selectedDay ? " on " + e(selectedDay) : ""}</span></div>${projectHTML() || '<p class="empty">No reported tokens yet. Build a game in Studio to start your streak.</p>'}</section>${detailsHTML()}<footer class="footer"><span>${exact(data.eventCount)} local events · Updated ${new Date(data.updatedAt).toLocaleTimeString("en-US")}</span><span>${e(zone)}</span></footer>` : `<div class="compact-games">${projectHTML(1) || '<span class="hint">Build a game in Studio to start your streak.</span>'}</div>`}${data.partial || data.warnings.length ? `<p class="warning" role="status">Some history or token fields are unavailable. Totals cover reported usage only.${expanded ? " " + data.warnings.map(e).join(" ") : ""}</p>` : ""}${error ? `<p class="warning" role="alert">${e(error)}</p>` : ""}`;
 	if (expanded && tab === "changes")
 		root
 			.querySelector(".files")
@@ -296,15 +299,16 @@ async function refresh(force = false) {
 function schedule() {
 	if (live && !document.hidden) timer = setTimeout(() => void refresh(), 5000);
 }
-async function openDay(day: string) {
-	try { await api.call("customization.openDetails", undefined, { day }); }
-	catch (err) { error = String(err); root.setAttribute("aria-label", error); }
+function openDay(day: string) {
+	expanded = true;
+	selectedDay = day;
+	void refresh(true);
 }
 root.addEventListener("click", (event) => {
 	const target = (event.target as Element).closest<HTMLElement>("button");
 	if (!target) return;
 	if (target.dataset.date) {
-		if (embedded) { void openDay(target.dataset.date); return; }
+		if (!expanded) { openDay(target.dataset.date); return; }
 		selectedDay =
 			selectedDay === target.dataset.date ? "" : target.dataset.date;
 		void refresh(true);
@@ -347,19 +351,10 @@ root.addEventListener("click", (event) => {
 			if (live) void refresh(true);
 			render();
 			break;
-		case "mount":
-			void api
-				.call("customization.set", undefined, profile())
-				.then(() => {
-					error = "";
-					render();
-				})
-				.catch((err) => {
-					error =
-						"New Chat requires the customization API from PR #112: " +
-						String(err);
-					render();
-				});
+		case "back":
+			expanded = false;
+			selectedDay = selectedProject = selectedModel = "";
+			void refresh(true);
 			break;
 	}
 });
@@ -374,7 +369,7 @@ root.addEventListener("keydown", (event) => {
 		"[data-index]",
 	);
 	if (!target) return;
-	const offsets: Record<string, number> = embedded
+	const offsets: Record<string, number> = !expanded
  ? { ArrowUp: -7, ArrowDown: 7, ArrowLeft: -1, ArrowRight: 1 }
  : { ArrowUp: -1, ArrowDown: 1, ArrowLeft: -7, ArrowRight: 7 };
 	if (!(event.key in offsets)) return;
@@ -415,11 +410,11 @@ async function theme(context?: any) {
 api.onContextChanged(() => {
 	void theme().catch(() => {});
 });
-window.addEventListener("resize", () => { if (embedded && data) render(); });
+window.addEventListener("resize", () => { if (!expanded && data) render(); });
 document.body.classList.toggle("widget-page", embedded);
 render();
 void (async () => {
-	try { const ctx = await api.call("context"); await theme(ctx); if (!embedded && /^\d{4}-\d{2}-\d{2}$/.test(ctx.navigation?.day || "")) selectedDay = ctx.navigation.day; }
+	try { const ctx = await api.call("context"); await theme(ctx); }
 	catch { /* The analytics panel can still read data if theme discovery fails. */ }
 	await refresh(true);
 })();

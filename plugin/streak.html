@@ -172,6 +172,7 @@ select option {
 	color: var(--muted);
 }
 .month-row span {
+	grid-row: 1;
 	white-space: nowrap;
 }
 .weekdays {
@@ -785,6 +786,10 @@ select option {
   .streak-flame::before, .streak-flame::after { animation: none; transform: none; opacity: .6; will-change: auto; }
 }
 
+/* The released host provides a normal plugin page, not a New Chat overlay. */
+.widget-page { overflow: auto; background: var(--background); padding: 24px 16px; }
+.widget-page .compact { height: 148px; max-width: 600px; margin: 0 auto; border: 1px solid var(--line); border-radius: 12px; }
+
 .compact:not([data-aura="rest"]) .flame-outer {
  animation: streak-flame-outer 2s steps(1,end) infinite;
  animation-delay: var(--aura-delay,0s);
@@ -952,6 +957,63 @@ window.studioPlugin = {
     return call("chooseFile", undefined, request, { timeoutMs: LONGEST_WAIT_MS });
   },
 };
+// In a dialog's card the panel's heading is the dialog's title and its frame is as tall as the
+// panel, so the dialog scrolls once: the SDK tells the dialog both whenever they change, and the
+// dialog's Back arrow presses the panel's own Back. The panel's heading and Back stay in its page.
+// Its own scope: a panel's script shares the page's globals and may use any of these names.
+(() => {
+  const HEAD = "[data-panel-head]";
+  const BACK = "[data-panel-back]";
+  const ON_CARD = `:root[data-surface="card"]{overflow:hidden}:root[data-surface="card"] :is(${HEAD},${BACK}){display:none!important}`;
+  let toldHead = "";
+  let toldHeight = -1;
+  const isShown = (node) => !node.closest("[hidden]") && !node.disabled;
+  const shownOne = (selector) => [...document.querySelectorAll(selector)].find(isShown) ?? null;
+  const lineOf = (node) => node?.textContent?.replace(/\s+/g, " ").trim() ?? "";
+  function tellDialog() {
+    const head = shownOne(HEAD);
+    const told = {
+      type: "studio-plugin-head",
+      title: lineOf(head?.querySelector("h1,h2,h3")),
+      description: lineOf(head?.querySelector("p")) || null,
+      back: Boolean(shownOne(BACK)),
+    };
+    const key = JSON.stringify(told);
+    if (key !== toldHead) parent.postMessage(told, "*");
+    toldHead = key;
+    const height = Math.ceil(document.body.getBoundingClientRect().height);
+    if (height !== toldHeight) parent.postMessage({ type: "studio-plugin-size", height }, "*");
+    toldHeight = height;
+  }
+  function sitOnCard() {
+    const style = document.createElement("style");
+    style.textContent = ON_CARD;
+    document.head.append(style);
+    document.documentElement.dataset.surface = "card";
+    let queued = false;
+    const soon = () => {
+      if (queued) return;
+      queued = true;
+      setTimeout(() => {
+        queued = false;
+        tellDialog();
+      }, 0);
+    };
+    const watched = { subtree: true, childList: true, characterData: true, attributes: true };
+    new MutationObserver(soon).observe(document.body, { ...watched, attributeFilter: ["hidden", "disabled"] });
+    if (typeof ResizeObserver === "function") new ResizeObserver(soon).observe(document.body);
+    tellDialog();
+  }
+  if (typeof document === "undefined") return;
+  window.addEventListener("message", (event) => {
+    if (event.source === parent && event.data?.type === "studio-plugin-back") shownOne(BACK)?.click();
+  });
+  call("context")
+    .then((context) => {
+      if (context?.surface === "card") sitOnCard();
+    })
+    .catch(() => {});
+})();
 window.addEventListener("pagehide", () => {
   for (const p of waiting.values()) {
     clearTimeout(p.timer);
@@ -1083,23 +1145,6 @@ window.addEventListener("pagehide", () => {
   // src/model.ts
   var object = (v) => v && typeof v === "object" && !Array.isArray(v) ? v : {};
   var total = (u) => u.input + u.output + u.read + u.write;
-  function profile() {
-    return {
-      version: 1,
-      widgets: [
-        {
-          id: "usage-streak",
-          target: "newChatFooter",
-          kind: "panel",
-          panel: "streak",
-          column: 1,
-          row: 1,
-          columnSpan: 8,
-          rowSpan: 18
-        }
-      ]
-    };
-  }
 
   // src/panel.ts
   var api = window.studioPlugin;
@@ -1148,7 +1193,8 @@ window.addEventListener("pagehide", () => {
         timeZone: "UTC"
       });
       if (month !== last) {
-        months += `<span style="grid-column:${Math.floor(i / 7) + 1}/span ${Math.min(3, weeks - Math.floor(i / 7))}">${e(month)}</span>`;
+        if (i > 0 || days[Math.min(14, days.length - 1)].date.slice(0, 7) === days[i].date.slice(0, 7))
+          months += `<span style="grid-column:${Math.floor(i / 7) + 1}/span ${Math.min(3, weeks - Math.floor(i / 7))}">${e(month)}</span>`;
         last = month;
       }
     }
@@ -1230,6 +1276,7 @@ window.addEventListener("pagehide", () => {
     }
   }
   function render() {
+    document.body.classList.toggle("widget-page", !expanded);
     const focus = document.activeElement instanceof HTMLElement ? document.activeElement.dataset.date : null;
     const opened = [
       ...root.querySelectorAll("details[open]")
@@ -1240,13 +1287,13 @@ window.addEventListener("pagehide", () => {
       return;
     }
     const sum = total(data.counts);
-    if (embedded) {
+    if (!expanded) {
       root.innerHTML = widgetHTML(sum);
       if (error) root.setAttribute("aria-label", error);
       else root.removeAttribute("aria-label");
       return;
     }
-    root.innerHTML = `<header class="top"><div><h1>${expanded ? "Usage-Streak" : button("expand", 'Usage-Streak <span aria-hidden="true">↗</span>', "title-button")}</h1>${expanded ? "<p>Your games, measured in tokens.</p>" : ""}</div><div class="head-actions">${expanded ? button("live", live ? "● Live" : "Paused", "quiet") + button("refresh", "Refresh", "quiet") + (embedded ? button("collapse", "Close", "quiet") : button("mount", "Show on New Chat", "quiet")) : ""}</div></header>${expanded ? filtersHTML() : ""}<div class="summary"><strong title="${exact(sum)}">${number(sum)} <span>reported tokens${selectedDay ? " · " + e(selectedDay) : ""}</span></strong><span class="streak">${data.streak.current} day streak <span class="muted">· Best ${data.streak.longest}</span></span></div>${calendarHTML()}${expanded ? `<div class="metrics"><div><span>Input</span><strong>${number(data.counts.input)}</strong></div><div><span>Output</span><strong>${number(data.counts.output)}</strong></div><div><span>Cache read / write</span><strong>${number(data.counts.read)} / ${number(data.counts.write)}</strong></div><div><span>Model calls</span><strong>${number(data.callCount)}</strong></div></div>${graphHTML()}<section class="games"><div class="section-head"><h2>Games</h2><span>Reported usage${selectedDay ? " on " + e(selectedDay) : ""}</span></div>${projectHTML() || '<p class="empty">No reported tokens yet. Build a game in Studio to start your streak.</p>'}</section>${detailsHTML()}<footer class="footer"><span>${exact(data.eventCount)} local events · Updated ${new Date(data.updatedAt).toLocaleTimeString("en-US")}</span><span>${e(zone)}</span></footer>` : `<div class="compact-games">${projectHTML(1) || '<span class="hint">Build a game in Studio to start your streak.</span>'}</div>`}${data.partial || data.warnings.length ? `<p class="warning" role="status">Some history or token fields are unavailable. Totals cover reported usage only.${expanded ? " " + data.warnings.map(e).join(" ") : ""}</p>` : ""}${error ? `<p class="warning" role="alert">${e(error)}</p>` : ""}`;
+    root.innerHTML = `<header class="top"><div><h1>${expanded ? "Usage-Streak" : button("expand", 'Usage-Streak <span aria-hidden="true">↗</span>', "title-button")}</h1>${expanded ? "<p>Your games, measured in tokens.</p>" : ""}</div><div class="head-actions">${expanded ? button("live", live ? "● Live" : "Paused", "quiet") + button("refresh", "Refresh", "quiet") + (embedded ? button("back", "Back to overview", "quiet") : "") : ""}</div></header>${expanded ? filtersHTML() : ""}<div class="summary"><strong title="${exact(sum)}">${number(sum)} <span>reported tokens${selectedDay ? " · " + e(selectedDay) : ""}</span></strong><span class="streak">${data.streak.current} day streak <span class="muted">· Best ${data.streak.longest}</span></span></div>${calendarHTML()}${expanded ? `<div class="metrics"><div><span>Input</span><strong>${number(data.counts.input)}</strong></div><div><span>Output</span><strong>${number(data.counts.output)}</strong></div><div><span>Cache read / write</span><strong>${number(data.counts.read)} / ${number(data.counts.write)}</strong></div><div><span>Model calls</span><strong>${number(data.callCount)}</strong></div></div>${graphHTML()}<section class="games"><div class="section-head"><h2>Games</h2><span>Reported usage${selectedDay ? " on " + e(selectedDay) : ""}</span></div>${projectHTML() || '<p class="empty">No reported tokens yet. Build a game in Studio to start your streak.</p>'}</section>${detailsHTML()}<footer class="footer"><span>${exact(data.eventCount)} local events · Updated ${new Date(data.updatedAt).toLocaleTimeString("en-US")}</span><span>${e(zone)}</span></footer>` : `<div class="compact-games">${projectHTML(1) || '<span class="hint">Build a game in Studio to start your streak.</span>'}</div>`}${data.partial || data.warnings.length ? `<p class="warning" role="status">Some history or token fields are unavailable. Totals cover reported usage only.${expanded ? " " + data.warnings.map(e).join(" ") : ""}</p>` : ""}${error ? `<p class="warning" role="alert">${e(error)}</p>` : ""}`;
     if (expanded && tab === "changes")
       root.querySelector(".files")?.insertAdjacentHTML("beforebegin", changesHTML());
     root.querySelectorAll("details").forEach((d) => {
@@ -1342,20 +1389,17 @@ window.addEventListener("pagehide", () => {
   function schedule() {
     if (live && !document.hidden) timer = setTimeout(() => void refresh(), 5e3);
   }
-  async function openDay(day) {
-    try {
-      await api.call("customization.openDetails", void 0, { day });
-    } catch (err) {
-      error = String(err);
-      root.setAttribute("aria-label", error);
-    }
+  function openDay(day) {
+    expanded = true;
+    selectedDay = day;
+    void refresh(true);
   }
   root.addEventListener("click", (event) => {
     const target = event.target.closest("button");
     if (!target) return;
     if (target.dataset.date) {
-      if (embedded) {
-        void openDay(target.dataset.date);
+      if (!expanded) {
+        openDay(target.dataset.date);
         return;
       }
       selectedDay = selectedDay === target.dataset.date ? "" : target.dataset.date;
@@ -1399,14 +1443,10 @@ window.addEventListener("pagehide", () => {
         if (live) void refresh(true);
         render();
         break;
-      case "mount":
-        void api.call("customization.set", void 0, profile()).then(() => {
-          error = "";
-          render();
-        }).catch((err) => {
-          error = "New Chat requires the customization API from PR #112: " + String(err);
-          render();
-        });
+      case "back":
+        expanded = false;
+        selectedDay = selectedProject = selectedModel = "";
+        void refresh(true);
         break;
     }
   });
@@ -1421,7 +1461,7 @@ window.addEventListener("pagehide", () => {
       "[data-index]"
     );
     if (!target) return;
-    const offsets = embedded ? { ArrowUp: -7, ArrowDown: 7, ArrowLeft: -1, ArrowRight: 1 } : { ArrowUp: -1, ArrowDown: 1, ArrowLeft: -7, ArrowRight: 7 };
+    const offsets = !expanded ? { ArrowUp: -7, ArrowDown: 7, ArrowLeft: -1, ArrowRight: 1 } : { ArrowUp: -1, ArrowDown: 1, ArrowLeft: -7, ArrowRight: 7 };
     if (!(event.key in offsets)) return;
     event.preventDefault();
     const index = Math.max(
@@ -1459,7 +1499,7 @@ window.addEventListener("pagehide", () => {
     });
   });
   window.addEventListener("resize", () => {
-    if (embedded && data) render();
+    if (!expanded && data) render();
   });
   document.body.classList.toggle("widget-page", embedded);
   render();
@@ -1467,7 +1507,6 @@ window.addEventListener("pagehide", () => {
     try {
       const ctx = await api.call("context");
       await theme(ctx);
-      if (!embedded && /^\d{4}-\d{2}-\d{2}$/.test(ctx.navigation?.day || "")) selectedDay = ctx.navigation.day;
     } catch {
     }
     await refresh(true);

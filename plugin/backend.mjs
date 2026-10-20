@@ -7403,7 +7403,7 @@ async function dirs(root, relative) {
 }
 function profileRoot(storage) {
   const normalized = path.resolve(storage), parts = normalized.split(path.sep);
-  if (parts.slice(-4, -1).join("/") !== "engine-homes/plugins/data" || parts.at(-1) !== "usage-streak")
+  if (parts.slice(-4, -1).join("/") !== "engine-homes/plugins/data" || parts.at(-1) !== "theastraydev-usage-streak")
     throw new Error(
       "Genex storage layout is not supported. Configure the Genex profile directory in plugin settings."
     );
@@ -10206,64 +10206,81 @@ async function checkpointChanges(root, entries, project, zone, day) {
 // src/backend.ts
 async function activate() {
   let reader = null;
-  return {
-    async action(name, args, context) {
-      if (!["analytics", "screenshot", "changes"].includes(name))
-        throw new Error("Unknown action");
-      const settings = object(await context.host("settings.read")), storage = await context.host("storage.root");
-      const configured = typeof settings.profile === "string" ? settings.profile.trim() : "";
-      if (configured && !path3.isAbsolute(configured))
-        throw new Error("Genex profile must be an absolute directory");
-      const root = configured ? path3.resolve(configured) : profileRoot(storage);
-      if (!reader || reader.root !== root) reader = new AnalyticsReader(root);
-      const data = await reader.snapshot(), zone = typeof args.zone === "string" ? args.zone : "UTC";
-      if (name === "screenshot") {
-        const shot = typeof args.project === "string" ? data.screenshots[args.project] : null;
-        if (!shot) return null;
-        try {
-          return {
-            data: await reader.image(shot.root, shot.file),
-            at: shot.at,
-            source: shot.source
-          };
-        } catch {
-          return null;
-        }
-      }
+  const action = async (name, args, context) => {
+    if (!["analytics", "screenshot", "changes"].includes(name))
+      throw new Error("Unknown action");
+    const settings = object(await context.host("settings.read")), storage = await context.host("storage.root");
+    const configured = typeof settings.profile === "string" ? settings.profile.trim() : "";
+    if (configured && !path3.isAbsolute(configured))
+      throw new Error("Genex profile must be an absolute directory");
+    const root = configured ? path3.resolve(configured) : profileRoot(storage);
+    if (!reader || reader.root !== root) reader = new AnalyticsReader(root);
+    const data = await reader.snapshot(), zone = typeof args.zone === "string" ? args.zone : "UTC";
+    if (name === "screenshot") {
+      const shot = typeof args.project === "string" ? data.screenshots[args.project] : null;
+      if (!shot) return null;
       try {
-        new Intl.DateTimeFormat("en", { timeZone: zone }).format();
+        return {
+          data: await reader.image(shot.root, shot.file),
+          at: shot.at,
+          source: shot.source
+        };
       } catch {
-        throw new Error("Unknown time zone");
+        return null;
       }
-      if (name === "changes") {
-        if (typeof args.project !== "string" || !args.project)
-          throw new Error("Choose a game to compare checkpoints");
-        return checkpointChanges(
-          root,
-          data.entries,
-          args.project,
-          zone,
-          typeof args.day === "string" && /^\d{4}-\d{2}-\d{2}$/.test(args.day) ? args.day : void 0
-        );
-      }
-      const result = analytics(data.entries, {
+    }
+    try {
+      new Intl.DateTimeFormat("en", { timeZone: zone }).format();
+    } catch {
+      throw new Error("Unknown time zone");
+    }
+    if (name === "changes") {
+      if (typeof args.project !== "string" || !args.project)
+        throw new Error("Choose a game to compare checkpoints");
+      return checkpointChanges(
+        root,
+        data.entries,
+        args.project,
         zone,
-        project: typeof args.project === "string" ? args.project : void 0,
-        model: typeof args.model === "string" ? args.model : void 0,
-        day: typeof args.day === "string" && /^\d{4}-\d{2}-\d{2}$/.test(args.day) ? args.day : void 0
-      });
-      return {
-        ...result,
-        screenshots: Object.fromEntries(
-          Object.entries(data.screenshots).map(([p, raw]) => {
-            const shot = object(raw);
-            return [p, { at: shot.at, source: shot.source }];
-          })
-        ),
-        warnings: data.warnings,
-        updatedAt: data.updatedAt,
-        eventCount: data.eventCount
-      };
+        typeof args.day === "string" && /^\d{4}-\d{2}-\d{2}$/.test(args.day) ? args.day : void 0
+      );
+    }
+    const result = analytics(data.entries, {
+      zone,
+      project: typeof args.project === "string" ? args.project : void 0,
+      model: typeof args.model === "string" ? args.model : void 0,
+      day: typeof args.day === "string" && /^\d{4}-\d{2}-\d{2}$/.test(args.day) ? args.day : void 0
+    });
+    return {
+      ...result,
+      screenshots: Object.fromEntries(
+        Object.entries(data.screenshots).map(([p, raw]) => {
+          const shot = object(raw);
+          return [p, { at: shot.at, source: shot.source }];
+        })
+      ),
+      warnings: data.warnings,
+      updatedAt: data.updatedAt,
+      eventCount: data.eventCount
+    };
+  };
+  return {
+    action,
+    async tool(name, args, context) {
+      if (name !== "usage-summary") throw new Error("Unknown tool");
+      const data = await action("analytics", args, context);
+      if (!data || !("counts" in data)) throw new Error("Usage unavailable");
+      return { text: JSON.stringify({
+        scope: "Local reported usage; not billing",
+        zone: data.zone,
+        reportedTokens: total(data.counts),
+        counts: data.counts,
+        currentStreak: data.streak.current,
+        longestStreak: data.streak.longest,
+        period: data.period,
+        partial: data.partial || data.warnings.length > 0,
+        warnings: data.warnings
+      }) };
     }
   };
 }

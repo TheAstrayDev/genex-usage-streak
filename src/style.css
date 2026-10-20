@@ -172,6 +172,7 @@ select option {
 	color: var(--muted);
 }
 .month-row span {
+	grid-row: 1;
 	white-space: nowrap;
 }
 .weekdays {
@@ -784,3 +785,7 @@ select option {
 @media (prefers-reduced-motion: reduce) {
   .streak-flame::before, .streak-flame::after { animation: none; transform: none; opacity: .6; will-change: auto; }
 }
+
+/* The released host provides a normal plugin page, not a New Chat overlay. */
+.widget-page { overflow: auto; background: var(--background); padding: 24px 16px; }
+.widget-page .compact { height: 148px; max-width: 600px; margin: 0 auto; border: 1px solid var(--line); border-radius: 12px; }

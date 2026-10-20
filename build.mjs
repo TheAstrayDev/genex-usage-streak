@@ -73,16 +73,16 @@ await writeFile(path.join(out, "THIRD_PARTY_NOTICES.txt"), notices.replace(/\r\n
 const version = JSON.parse(await readFile(path.join(root, "package.json"), "utf8")).version;
 const manifest = {
 	apiVersion: 3,
-	id: "usage-streak",
+	id: "theastraydev-usage-streak",
 	version,
 	publisher: "TheAstrayDev",
 	name: "Usage-Streak",
 	description:
-		"Local token activity by day, game and model, with saved Studio captures and a recorded activity tree. Requires unmerged customization API #112 plus footer/navigation hooks; incompatible with stock Genex.",
+		"Local reported token activity, streaks and saved captures. Reads Genex project and conversation files locally. Compatible with Genex 0.1.12.",
 	backend: "backend.mjs",
 	icon: "icon.svg",
-	capabilities: ["ui.customization"],
-	tools: [],
+	capabilities: ["project.read"],
+	tools: [{ name: "usage-summary", description: "Read aggregate local reported token usage and streaks. Does not return prompts or private reasoning; not a billing report.", parameters: { type: "object", properties: { zone: { type: "string", description: "IANA time zone, for example UTC or Europe/Berlin. Defaults to UTC." } }, required: [] } }],
 	skills: [],
 	settings: [
 		{
@@ -101,7 +101,7 @@ const manifest = {
 		},
 		{
 			id: "streak",
-			title: "New Chat widget",
+			title: "Streak overview",
 			placement: "settings",
 			file: "streak.html",
 		},
