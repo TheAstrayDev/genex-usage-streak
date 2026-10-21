@@ -74,7 +74,7 @@ export function profileRoot(storage: string): string {
 		parts = normalized.split(path.sep);
 	if (
 		parts.slice(-4, -1).join("/") !== "engine-homes/plugins/data" ||
-		parts.at(-1) !== "usage-streak"
+		parts.at(-1) !== "theastraydev-usage-streak"
 	)
 		throw new Error(
 			"Genex storage layout is not supported. Configure the Genex profile directory in plugin settings.",

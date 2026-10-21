@@ -1,16 +1,15 @@
 import path from "node:path";
 import { AnalyticsReader, profileRoot } from "./reader.ts";
-import { analytics, object } from "./model.ts";
+import { analytics, object, total } from "./model.ts";
 import { checkpointChanges } from "./changes.ts";
 /** Activation reads nothing. Refresh reads a narrow set of local records; no providers or network. */
 export async function activate() {
 	let reader: AnalyticsReader | null = null;
-	return {
-		async action(
+	const action = async (
 			name: string,
 			args: Record<string, unknown>,
 			context: { host: (method: string) => Promise<any> },
-		) {
+		) => {
 			if (!["analytics", "screenshot", "changes"].includes(name))
 				throw new Error("Unknown action");
 			const settings = object(await context.host("settings.read")),
@@ -78,6 +77,24 @@ export async function activate() {
 				updatedAt: data.updatedAt,
 				eventCount: data.eventCount,
 			};
+		};
+	return {
+		action,
+		async tool(name: string, args: Record<string, unknown>, context: { host: (method: string) => Promise<any> }) {
+			if (name !== "usage-summary") throw new Error("Unknown tool");
+			const data = await action("analytics", args, context);
+			if (!data || !("counts" in data)) throw new Error("Usage unavailable");
+			return { text: JSON.stringify({
+				scope: "Local reported usage; not billing",
+				zone: data.zone,
+				reportedTokens: total(data.counts),
+				counts: data.counts,
+				currentStreak: data.streak.current,
+				longestStreak: data.streak.longest,
+				period: data.period,
+				partial: data.partial || data.warnings.length > 0,
+				warnings: data.warnings,
+			}) };
 		},
 	};
 }

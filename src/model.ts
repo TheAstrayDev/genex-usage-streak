@@ -285,23 +285,6 @@ export function streaks(
 	}
 	return { current, longest };
 }
-export function profile() {
-	return {
-		version: 1,
-		widgets: [
-			{
-				id: "usage-streak",
-                target: "newChatFooter",
-				kind: "panel",
-				panel: "streak",
-                column: 1,
-                row: 1,
-                columnSpan: 8,
-                rowSpan: 18,
-			},
-		],
-	};
-}
 export function analytics(
 	entries: Entry[],
 	filter: {

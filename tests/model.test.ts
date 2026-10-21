@@ -8,7 +8,6 @@ import {
 	total,
 	calendar,
 	streaks,
-	profile,
 	type Entry,
 } from "../src/model.ts";
 const usage = {
@@ -202,14 +201,6 @@ test("file activity describes only structured edit paths", () => {
 	)!;
 	assert.deepEqual(a.files, ["src/car.ts"]);
 	assert.ok(!JSON.stringify(a).includes("do not expose"));
-});
-test("widget composition has no appearance overrides", () => {
-	assert.deepEqual(Object.keys(profile()), ["version", "widgets"]);
-	assert.equal(profile().widgets[0].target, "newChatFooter");
-	assert.equal(profile().widgets[0].row, 1);
-	assert.equal(profile().widgets[0].rowSpan, 18);
-	assert.equal(profile().widgets[0].column, 1);
-	assert.equal(profile().widgets[0].columnSpan, 8);
 });
 
 test('recorded range explains the dates covered by token totals',()=>{

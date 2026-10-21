@@ -68,21 +68,24 @@ for (const name of [...packages].sort()) {
 		} catch {}
 	notices += "\n\n";
 }
+notices += "isomorphic-git 1.44.2 includes modified @zenfs/core/path helpers (LGPL-3.0-or-later)\nCopyright (c) James Prevett and other ZenFS contributors.\nCorresponding source: ISOMORPHIC_GIT_SOURCE.txt (the exact unmodified installed library module)\nThe bundled path helper retains its upstream license header; it is not covered by the package root MIT license.\nThis plugin's complete source and pinned build dependencies are public; rebuild with a modified library using npm ci && npm run build and replace the locally installed plugin. No signing key is required.\n\n";
+for (const file of ["LGPL-3.0.txt", "GPL-3.0.txt"]) notices += await readFile(path.join(root,"vendor/licenses",file),"utf8") + "\n\n";
 notices += "Genex panel bridge and color math (MIT)\n" + await readFile(path.join(root,"vendor/LICENSE.genex"),"utf8") + "\n\n";
+await cp(path.join(root,"node_modules/isomorphic-git/index.js"), path.join(out,"ISOMORPHIC_GIT_SOURCE.txt"));
 await writeFile(path.join(out, "THIRD_PARTY_NOTICES.txt"), notices.replace(/\r\n/g, "\n").trimEnd() + "\n");
 const version = JSON.parse(await readFile(path.join(root, "package.json"), "utf8")).version;
 const manifest = {
 	apiVersion: 3,
-	id: "usage-streak",
+	id: "theastraydev-usage-streak",
 	version,
 	publisher: "TheAstrayDev",
 	name: "Usage-Streak",
 	description:
-		"Local token activity by day, game and model, with saved Studio captures and a recorded activity tree. Requires unmerged customization API #112 plus footer/navigation hooks; incompatible with stock Genex.",
+		"Local reported token activity, streaks and saved captures. Reads local Genex history, saved run captures and Genex Tools covers. Compatible with Genex 0.1.12.",
 	backend: "backend.mjs",
 	icon: "icon.svg",
-	capabilities: ["ui.customization"],
-	tools: [],
+	capabilities: ["project.read"],
+	tools: [{ name: "usage-summary", description: "Read aggregate local reported token usage and streaks. Does not return prompts or private reasoning; not a billing report.", parameters: { type: "object", properties: { zone: { type: "string", description: "IANA time zone, for example UTC or Europe/Berlin. Defaults to UTC." } }, required: [] } }],
 	skills: [],
 	settings: [
 		{
@@ -101,7 +104,7 @@ const manifest = {
 		},
 		{
 			id: "streak",
-			title: "New Chat widget",
+			title: "Streak overview",
 			placement: "settings",
 			file: "streak.html",
 		},
