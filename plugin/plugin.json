@@ -1,10 +1,10 @@
 {
   "apiVersion": 3,
   "id": "theastraydev-usage-streak",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "publisher": "TheAstrayDev",
   "name": "Usage-Streak",
-  "description": "Local reported token activity, streaks and saved captures. Reads Genex project and conversation files locally. Compatible with Genex 0.1.12.",
+  "description": "Local reported token activity, streaks and saved captures. Reads local Genex history, saved run captures and Genex Tools covers. Compatible with Genex 0.1.12.",
   "backend": "backend.mjs",
   "icon": "icon.svg",
   "capabilities": [

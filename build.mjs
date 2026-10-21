@@ -68,7 +68,10 @@ for (const name of [...packages].sort()) {
 		} catch {}
 	notices += "\n\n";
 }
+notices += "isomorphic-git 1.44.2 includes modified @zenfs/core/path helpers (LGPL-3.0-or-later)\nCopyright (c) James Prevett and other ZenFS contributors.\nCorresponding source: ISOMORPHIC_GIT_SOURCE.txt (the exact unmodified installed library module)\nThe bundled path helper retains its upstream license header; it is not covered by the package root MIT license.\nThis plugin's complete source and pinned build dependencies are public; rebuild with a modified library using npm ci && npm run build and replace the locally installed plugin. No signing key is required.\n\n";
+for (const file of ["LGPL-3.0.txt", "GPL-3.0.txt"]) notices += await readFile(path.join(root,"vendor/licenses",file),"utf8") + "\n\n";
 notices += "Genex panel bridge and color math (MIT)\n" + await readFile(path.join(root,"vendor/LICENSE.genex"),"utf8") + "\n\n";
+await cp(path.join(root,"node_modules/isomorphic-git/index.js"), path.join(out,"ISOMORPHIC_GIT_SOURCE.txt"));
 await writeFile(path.join(out, "THIRD_PARTY_NOTICES.txt"), notices.replace(/\r\n/g, "\n").trimEnd() + "\n");
 const version = JSON.parse(await readFile(path.join(root, "package.json"), "utf8")).version;
 const manifest = {
@@ -78,7 +81,7 @@ const manifest = {
 	publisher: "TheAstrayDev",
 	name: "Usage-Streak",
 	description:
-		"Local reported token activity, streaks and saved captures. Reads Genex project and conversation files locally. Compatible with Genex 0.1.12.",
+		"Local reported token activity, streaks and saved captures. Reads local Genex history, saved run captures and Genex Tools covers. Compatible with Genex 0.1.12.",
 	backend: "backend.mjs",
 	icon: "icon.svg",
 	capabilities: ["project.read"],

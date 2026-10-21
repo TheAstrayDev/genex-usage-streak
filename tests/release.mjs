@@ -47,7 +47,7 @@ try {
   check("reading usage preserves the committed conversation record", await readFile(store.recordPath(binding.threadId), "utf8") === beforeRecord);
   const update = path.join(root, "update");
   await cp(source, update, { recursive: true });
-  const next = { ...manifest, version: "1.1.1" };
+  const next = { ...manifest, version: "1.1.2" };
   await writeFile(path.join(update, "plugin.json"), JSON.stringify(next, null, 2));
   await registry.installLocal(update, "local", manifest.capabilities, source);
   check("settings survive a same-identity update", (await registry.settings(manifest.id)).profile === profile);
